@@ -11,6 +11,11 @@
     </div>
     <div class="actions">
         <a href="{% url 'achat_nouveau' %}" class="btn btn-or"><i class="fas fa-truck-loading"></i> Nouvel achat</a>
+        {% if cloture_soiree %}
+        <a href="{% url 'cloture_detail' cloture_soiree.pk %}" class="btn"><i class="fas fa-lock"></i> Soirée clôturée</a>
+        {% else %}
+        <a href="{% url 'cloturer' %}" class="btn"><i class="fas fa-lock"></i> Clôturer la soirée</a>
+        {% endif %}
         <a href="{% url 'journal' %}" class="btn"><i class="fas fa-user-secret"></i> Journal d'audit</a>
     </div>
 </div>

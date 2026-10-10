@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import F, Sum
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -10,8 +10,8 @@ from django.views.decorators.http import require_POST
 from comptes.decorators import gerant_requis
 from stock.models import Categorie, Produit
 
-from . import services
-from .models import Commande, LigneCommande, Paiement, Table
+from . import cloture, services
+from .models import Cloture, Commande, LigneCommande, Paiement, Table
 from .services import ErreurCaisse
 
 
@@ -40,6 +40,7 @@ def tables(request):
     context = {
         'zones': zones,
         'comptoir': [c for c in ouvertes if not c.table_id],
+        'cloture': cloture.cloture_validee(cloture.soiree_courante()),
         'nb_occupees': len(par_table),
         'montant_en_cours': sum(c.reste_du for c in ouvertes),
     }
@@ -50,7 +51,11 @@ def tables(request):
 @require_POST
 def ouvrir(request, table_id=None):
     table = get_object_or_404(Table, pk=table_id, active=True) if table_id else None
-    commande = services.ouvrir_commande(table, request.user, request.POST.get('client', ''))
+    try:
+        commande = services.ouvrir_commande(table, request.user, request.POST.get('client', ''))
+    except ErreurCaisse as e:
+        messages.error(request, str(e))
+        return redirect('tables')
     return redirect('commande', commande.pk)
 
 
@@ -147,48 +152,113 @@ def ticket(request, commande_id):
     return render(request, 'caisse/ticket.html', context)
 
 
+def _jour_demande(request):
+    try:
+        return date.fromisoformat(request.GET['jour'])
+    except (KeyError, ValueError):
+        return cloture.soiree_courante()
+
+
 @login_required
 def ventes(request):
     """Bilan d'une soirée : encaissements par mode, ventes par serveur, articles vendus."""
-    debut_actuelle = services.debut_soiree()
-    try:
-        jour = date.fromisoformat(request.GET['jour'])
-    except (KeyError, ValueError):
-        jour = timezone.localtime(debut_actuelle).date()
-    debut, fin = services.bornes_soiree(jour)
-
-    commandes = Commande.objects.filter(date_ouverture__gte=debut, date_ouverture__lt=fin)
-    paiements = Paiement.objects.filter(commande__in=commandes)
-    if not request.user.is_superuser:
-        # Le personnel ne voit que ses propres commandes
-        commandes = commandes.filter(serveur=request.user)
-        paiements = paiements.filter(commande__serveur=request.user)
-
-    payees = commandes.filter(statut=Commande.PAYEE)
-    lignes_vendues = LigneCommande.objects.filter(commande__in=payees)
-    commandes_payees = list(payees.avec_totaux().select_related('table', 'serveur').order_by('-date_cloture'))
-    par_serveur = {}
-    for c in commandes_payees:
-        ligne = par_serveur.setdefault(c.serveur_id, {'nom': c.serveur.username, 'nb': 0, 'total': 0})
-        ligne['nb'] += 1
-        ligne['total'] += c.montant_total
-    context = {
-        'jour': jour,
-        'veille': date.fromordinal(jour.toordinal() - 1),
-        'lendemain': date.fromordinal(jour.toordinal() + 1),
-        'est_soiree_actuelle': debut == debut_actuelle,
-        'debut': debut,
-        'fin': fin,
-        'encaissements': services.encaissements_par_mode(paiements),
-        'total_encaisse': paiements.aggregate(t=Sum('montant'))['t'] or 0,
-        'chiffre_affaires': lignes_vendues.aggregate(t=Sum(F('quantite') * F('prix_unitaire')))['t'] or 0,
-        'nb_payees': payees.count(),
-        'ouvertes': commandes.filter(statut=Commande.OUVERTE).avec_totaux().select_related('table', 'serveur'),
-        'annulees': commandes.filter(statut=Commande.ANNULEE).select_related('table', 'serveur'),
-        'articles': (lignes_vendues.values('produit__nom')
-                     .annotate(nb=Sum('quantite'), total=Sum(F('quantite') * F('prix_unitaire')))
-                     .order_by('-total')),
-        'commandes_payees': commandes_payees,
-        'par_serveur': sorted(par_serveur.values(), key=lambda s: -s['total']),
-    }
+    jour = _jour_demande(request)
+    # Le personnel ne voit que ses propres commandes
+    context = cloture.bilan(jour, serveur=None if request.user.is_superuser else request.user)
+    context.update({
+        'veille': jour - timedelta(days=1),
+        'lendemain': jour + timedelta(days=1),
+        'est_soiree_actuelle': jour == cloture.soiree_courante(),
+        'cloture': cloture.cloture_validee(jour),
+    })
     return render(request, 'caisse/ventes.html', context)
+
+
+@gerant_requis
+def cloturer(request):
+    """Clôture de la soirée : vérifications, comptage de la caisse, inventaire de fin de service."""
+    jour = _jour_demande(request)
+    existante = cloture.cloture_validee(jour)
+    if existante is not None:
+        return redirect('cloture_detail', existante.pk)
+
+    bilan = cloture.bilan(jour)
+    produits = cloture.produits_a_inventorier(jour)
+    erreurs, saisie = [], {}
+    if request.method == 'POST':
+        saisie = request.POST
+        fond = _entier(request.POST.get('fond_de_caisse'), 0)
+        comptes_modes = {}
+        for mode, libelle, _ in bilan['encaissements']:
+            valeur = request.POST.get(f'compte_{mode}', '').strip()
+            if valeur:
+                comptes_modes[mode] = _entier(valeur, None)
+                if comptes_modes[mode] is None:
+                    erreurs.append(f"Montant compté invalide pour {libelle}.")
+        comptes_produits = {}
+        for produit in produits:
+            valeur = request.POST.get(f'stock_{produit.pk}', '').strip()
+            if valeur:
+                quantite = _entier(valeur, None)
+                if quantite is None or quantite < 0:
+                    erreurs.append(f"Quantité comptée invalide pour {produit}.")
+                else:
+                    comptes_produits[produit.pk] = quantite
+        if fond < 0:
+            erreurs.append("Le fond de caisse ne peut pas être négatif.")
+        if not erreurs:
+            try:
+                resultat = cloture.cloturer(jour, request.user, fond, comptes_modes, comptes_produits,
+                                            request.POST.get('note', ''))
+            except ErreurCaisse as e:
+                erreurs.append(str(e))
+            else:
+                messages.success(request, f"Soirée du {jour:%d/%m/%Y} clôturée.")
+                return redirect('cloture_detail', resultat.pk)
+
+    for produit in produits:
+        produit.saisie = saisie.get(f'stock_{produit.pk}', '')
+    context = dict(bilan)
+    context.update({
+        'comptage': [{'cle': cle, 'libelle': libelle, 'montant': montant, 'saisie': saisie.get(f'compte_{cle}', '')}
+                     for cle, libelle, montant in bilan['encaissements']],
+        'problemes': cloture.verifier(jour),
+        'erreurs': erreurs,
+        'saisie': saisie,
+        'produits': produits,
+        'modes_avec_reference': Paiement.MODES_AVEC_REFERENCE,
+        'est_soiree_actuelle': jour == cloture.soiree_courante(),
+    })
+    return render(request, 'caisse/cloturer.html', context)
+
+
+@gerant_requis
+def clotures(request):
+    liste = Cloture.objects.select_related('par', 'rouverte_par')
+    return render(request, 'caisse/clotures.html', {'page_clotures': Paginator(liste, 30).get_page(request.GET.get('page'))})
+
+
+@gerant_requis
+def cloture_detail(request, cloture_id):
+    resultat = get_object_or_404(Cloture.objects.select_related('par', 'rouverte_par'), pk=cloture_id)
+    context = cloture.bilan(resultat.soiree)
+    context.update({
+        'cloture': resultat,
+        'comptages': resultat.comptages.all(),
+        'inventaire': resultat.inventaire.select_related('produit__categorie'),
+        'ecarts_inventaire': [l for l in resultat.inventaire.select_related('produit') if l.ecart],
+    })
+    return render(request, 'caisse/cloture_detail.html', context)
+
+
+@gerant_requis
+@require_POST
+def rouvrir(request, cloture_id):
+    resultat = get_object_or_404(Cloture, pk=cloture_id)
+    try:
+        cloture.rouvrir(resultat, request.user, request.POST.get('motif', ''))
+    except ErreurCaisse as e:
+        messages.error(request, str(e))
+        return redirect('cloture_detail', resultat.pk)
+    messages.success(request, f"Soirée du {resultat.soiree:%d/%m/%Y} rouverte : la caisse accepte de nouveau les commandes.")
+    return redirect('tables')

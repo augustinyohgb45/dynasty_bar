@@ -138,3 +138,82 @@ class Paiement(models.Model):
 
     def __str__(self):
         return f"{self.get_mode_display()} {self.montant} FCFA · {self.commande.numero}"
+
+
+class Cloture(models.Model):
+    """Clôture d'une soirée : comptage de la caisse, inventaire de fin de service et bilan figé."""
+    VALIDEE = 'validee'
+    ROUVERTE = 'rouverte'
+    STATUTS = [(VALIDEE, "Clôturée"), (ROUVERTE, "Rouverte")]
+
+    soiree = models.DateField("soirée du")
+    debut = models.DateTimeField()
+    fin = models.DateTimeField()
+    statut = models.CharField(max_length=10, choices=STATUTS, default=VALIDEE)
+    date = models.DateTimeField("clôturée le", default=timezone.now)
+    par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='clotures')
+    fond_de_caisse = models.PositiveIntegerField("fond de caisse (FCFA)", default=0,
+                                                 help_text="Espèces présentes dans la caisse en début de soirée.")
+    note = models.TextField(blank=True)
+    # Bilan figé au moment de la clôture
+    chiffre_affaires = models.IntegerField(default=0)
+    total_encaisse = models.IntegerField(default=0)
+    nb_commandes = models.PositiveIntegerField(default=0)
+    nb_annulees = models.PositiveIntegerField(default=0)
+    ecart_caisse = models.IntegerField(default=0, help_text="Total compté − total attendu, tous modes confondus.")
+    ecart_stock = models.IntegerField(default=0, help_text="Valeur des écarts d'inventaire (prix d'achat, sinon prix de vente).")
+    # Réouverture éventuelle par le gérant
+    motif_reouverture = models.CharField(max_length=255, blank=True)
+    rouverte_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                     related_name='reouvertures')
+    date_reouverture = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-soiree', '-date']
+        verbose_name = "clôture de soirée"
+        verbose_name_plural = "clôtures de soirée"
+        constraints = [
+            models.UniqueConstraint(fields=['soiree'], condition=models.Q(statut='validee'),
+                                    name='une_cloture_validee_par_soiree'),
+        ]
+
+    def __str__(self):
+        return f"Clôture de la soirée du {self.soiree:%d/%m/%Y}"
+
+    @property
+    def est_validee(self):
+        return self.statut == self.VALIDEE
+
+
+class ComptageCloture(models.Model):
+    cloture = models.ForeignKey(Cloture, on_delete=models.CASCADE, related_name='comptages')
+    mode = models.CharField(max_length=15, choices=Paiement.MODES)
+    attendu = models.IntegerField()
+    compte = models.IntegerField()
+
+    class Meta:
+        ordering = ['id']
+
+    @property
+    def ecart(self):
+        return self.compte - self.attendu
+
+
+class InventaireCloture(models.Model):
+    cloture = models.ForeignKey(Cloture, on_delete=models.CASCADE, related_name='inventaire')
+    produit = models.ForeignKey(Produit, on_delete=models.PROTECT, related_name='+')
+    theorique = models.IntegerField()
+    compte = models.IntegerField()
+    prix_unitaire = models.PositiveIntegerField(help_text="Prix servant à valoriser l'écart.")
+    mouvement = models.OneToOneField(MouvementStock, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
+    class Meta:
+        ordering = ['id']
+
+    @property
+    def ecart(self):
+        return self.compte - self.theorique
+
+    @property
+    def valeur_ecart(self):
+        return self.ecart * self.prix_unitaire

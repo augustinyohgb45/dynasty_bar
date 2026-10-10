@@ -19,6 +19,9 @@ class JournalAudit(models.Model):
     PERTE = 'perte'
     INVENTAIRE = 'inventaire'
     IMPORT = 'import'
+    # Soirée
+    CLOTURE = 'cloture'
+    REOUVERTURE = 'reouverture'
     # Données (catalogue, tables, comptes…)
     CREATION = 'creation'
     MODIFICATION = 'modification'
@@ -35,6 +38,8 @@ class JournalAudit(models.Model):
         (ANNULATION, "Annulation de commande"),
         (RECEPTION, "Réception de stock"),
         (ACHAT, "Achat"),
+        (CLOTURE, "Clôture de soirée"),
+        (REOUVERTURE, "Réouverture de soirée"),
         (PERTE, "Casse / offert"),
         (INVENTAIRE, "Ajustement d'inventaire"),
         (IMPORT, "Import du catalogue"),
@@ -43,7 +48,7 @@ class JournalAudit(models.Model):
         (SUPPRESSION, "Suppression"),
     ]
     # Actions à surveiller de près (pertes d'argent ou de marchandise possibles)
-    SENSIBLES = {ECHEC_CONNEXION, RETRAIT, ANNULATION, PERTE, INVENTAIRE, SUPPRESSION}
+    SENSIBLES = {ECHEC_CONNEXION, RETRAIT, ANNULATION, PERTE, INVENTAIRE, SUPPRESSION, REOUVERTURE}
 
     date = models.DateTimeField(auto_now_add=True, db_index=True)
     utilisateur = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,

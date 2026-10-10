@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}Clôture de soirée{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Clôture de la soirée du {{ jour|date:"l j F Y" }}</h1>
+        <p class="sous-titre">Du {{ debut|date:"d/m H:i" }} au {{ fin|date:"d/m H:i" }} · comptez la caisse et le stock, puis validez.</p>
+    </div>
+    <div class="actions">
+        <a href="{% url 'clotures' %}" class="btn"><i class="fas fa-history"></i> Clôtures précédentes</a>
+    </div>
+</div>
+
+{% if problemes or erreurs %}
+<div class="messages">
+    {% for p in problemes %}<div class="message erreur"><i class="fas fa-ban"></i><span>{{ p }}</span></div>{% endfor %}
+    {% for e in erreurs %}{% if e not in problemes %}<div class="message erreur"><i class="fas fa-times-circle"></i><span>{{ e }}</span></div>{% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<div class="indicateurs">
+    <div class="indicateur"><div><div class="libelle">Chiffre d'affaires</div><div class="valeur">{{ chiffre_affaires|fcfa }}</div><div class="note">{{ nb_payees }} commande{{ nb_payees|pluralize }} soldée{{ nb_payees|pluralize }}</div></div><div class="icone icone-or"><i class="fas fa-chart-line"></i></div></div>
+    <div class="indicateur"><div><div class="libelle">Encaissé</div><div class="valeur">{{ total_encaisse|fcfa }}</div></div><div class="icone icone-vert"><i class="fas fa-cash-register"></i></div></div>
+    <div class="indicateur"><div><div class="libelle">Annulations · retraits</div><div class="valeur">{{ annulees|length }} · {{ retraits|length }}</div><div class="note">à vérifier dans le journal</div></div><div class="icone {% if annulees or retraits %}icone-orange{% else %}icone-vert{% endif %}"><i class="fas fa-user-secret"></i></div></div>
+    <div class="indicateur"><div><div class="libelle">Casses et offerts</div><div class="valeur">{{ pertes|length }}</div></div><div class="icone {% if pertes %}icone-orange{% else %}icone-vert{% endif %}"><i class="fas fa-heart-broken"></i></div></div>
+</div>
+
+<form method="post" novalidate id="formulaire-cloture">
+    {% csrf_token %}
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-cash-register"></i>1. Comptage de la caisse</h2><span class="texte-discret">Écart total : <strong id="ecart-caisse">—</strong></span></div>
+        <div class="panneau-corps">
+            <div class="champ etroit-champ">
+                <label for="fond_de_caisse">Fond de caisse en début de soirée (FCFA)</label>
+                <input type="number" min="0" name="fond_de_caisse" id="fond_de_caisse" value="{{ saisie.fond_de_caisse|default:0 }}" inputmode="numeric">
+                <div class="aide">Espèces déjà présentes dans le tiroir à l'ouverture : elles s'ajoutent aux espèces attendues.</div>
+            </div>
+        </div>
+        <div class="tableau-conteneur">
+            <table class="tableau">
+                <thead><tr><th>Mode</th><th class="nombre">Encaissé</th><th class="nombre">Attendu</th><th>Compté</th><th class="nombre">Écart</th></tr></thead>
+                <tbody>
+                    {% for m in comptage %}
+                    <tr class="ligne-comptage" data-encaisse="{{ m.montant }}" data-especes="{% if m.cle == 'especes' %}oui{% endif %}">
+                        <td class="fort">{{ m.libelle }}<div class="discret">{% if m.cle == 'especes' %}tiroir-caisse{% elif m.cle == 'carte' %}relevé du terminal{% else %}relevé du compte marchand{% endif %}</div></td>
+                        <td class="nombre">{{ m.montant|fcfa }}</td>
+                        <td class="nombre fort attendu">{{ m.montant|fcfa }}</td>
+                        <td><input type="number" min="0" name="compte_{{ m.cle }}" value="{{ m.saisie }}" class="saisie-compte" inputmode="numeric" aria-label="Montant compté {{ m.libelle }}"{% if m.montant or m.cle == 'especes' %} required{% endif %} placeholder="{% if m.montant or m.cle == 'especes' %}à compter{% else %}facultatif{% endif %}"></td>
+                        <td class="nombre ecart">—</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete">
+            <h2><i class="fas fa-boxes"></i>2. Inventaire de fin de service</h2>
+            <div class="recherche">
+                <input type="search" placeholder="Rechercher une boisson…" aria-label="Rechercher une boisson" id="recherche-inventaire">
+                <span class="texte-discret">Écart : <strong id="ecart-stock">—</strong></span>
+            </div>
+        </div>
+        <div class="panneau-corps texte-discret">Comptez les bouteilles restantes. Laissez vide une boisson non comptée : son stock ne sera pas modifié. Les écarts sont corrigés dans le stock à la validation.</div>
+        <div class="tableau-conteneur hauteur-limitee">
+            <table class="tableau">
+                <thead><tr><th>Boisson</th><th class="nombre">Théorique</th><th>Compté</th><th class="nombre">Écart</th></tr></thead>
+                <tbody>
+                    {% for p in produits %}
+                    <tr class="ligne-inventaire" data-theorique="{{ p.stock }}" data-prix="{% if p.prix_achat is not None %}{{ p.prix_achat }}{% else %}{{ p.prix_vente }}{% endif %}" data-nom="{{ p.nom|lower }}">
+                        <td><div class="fort">{{ p.nom }}</div><div class="discret">{{ p.categorie }}</div></td>
+                        <td class="nombre fort">{{ p.stock }}</td>
+                        <td><input type="number" min="0" name="stock_{{ p.pk }}" class="saisie-stock" inputmode="numeric" aria-label="Quantité comptée {{ p.nom }}" value="{{ p.saisie }}"></td>
+                        <td class="nombre ecart">—</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="vide">Aucune boisson en stock.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-check-double"></i>3. Validation</h2></div>
+        <div class="panneau-corps">
+            <div class="champ">
+                <label for="note">Remarques (facultatif)</label>
+                <input type="text" name="note" id="note" maxlength="500" value="{{ saisie.note|default:'' }}" placeholder="Ex. : billet de 10 000 suspect, bouteille cassée en réserve…">
+            </div>
+            <p class="texte-discret">Après validation, la caisse n'accepte plus de commande pour cette soirée (le gérant peut la rouvrir). Le bilan et les écarts sont enregistrés et inscrits au journal d'audit.</p>
+            <div class="pied-formulaire">
+                <a href="{% url 'ventes' %}" class="btn">Annuler</a>
+                <button type="submit" class="btn btn-or"{% if problemes %} disabled{% endif %}><i class="fas fa-lock"></i> Clôturer la soirée</button>
+            </div>
+        </div>
+    </section>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    function format(n) { return (n > 0 ? '+' : '') + n.toLocaleString('fr-FR') + ' FCFA'; }
+    function classe(cellule, ecart) {
+      cellule.classList.toggle('negatif', ecart < 0);
+      cellule.classList.toggle('positif', ecart > 0);
+    }
+    var fond = document.getElementById('fond_de_caisse');
+
+    function calculerCaisse() {
+      var total = 0, saisi = false;
+      document.querySelectorAll('.ligne-comptage').forEach(function (ligne) {
+        var attendu = parseInt(ligne.dataset.encaisse, 10) + (ligne.dataset.especes ? (parseInt(fond.value, 10) || 0) : 0);
+        ligne.querySelector('.attendu').textContent = attendu.toLocaleString('fr-FR') + ' FCFA';
+        var champ = ligne.querySelector('.saisie-compte');
+        var cellule = ligne.querySelector('.ecart');
+        if (champ.value === '') { cellule.textContent = '—'; classe(cellule, 0); return; }
+        var ecart = (parseInt(champ.value, 10) || 0) - attendu;
+        total += ecart; saisi = true;
+        cellule.textContent = ecart === 0 ? 'OK' : format(ecart);
+        classe(cellule, ecart);
+      });
+      var resume = document.getElementById('ecart-caisse');
+      resume.textContent = saisi ? (total === 0 ? 'aucun' : format(total)) : '—';
+      classe(resume, total);
+    }
+
+    function calculerStock() {
+      var total = 0, saisi = false;
+      document.querySelectorAll('.ligne-inventaire').forEach(function (ligne) {
+        var champ = ligne.querySelector('.saisie-stock');
+        var cellule = ligne.querySelector('.ecart');
+        if (champ.value === '') { cellule.textContent = '—'; classe(cellule, 0); return; }
+        var ecart = (parseInt(champ.value, 10) || 0) - parseInt(ligne.dataset.theorique, 10);
+        total += ecart * parseInt(ligne.dataset.prix, 10); saisi = true;
+        cellule.textContent = ecart === 0 ? 'OK' : (ecart > 0 ? '+' : '') + ecart;
+        classe(cellule, ecart);
+      });
+      var resume = document.getElementById('ecart-stock');
+      resume.textContent = saisi ? (total === 0 ? 'aucun' : format(total)) : '—';
+      classe(resume, total);
+    }
+
+    document.querySelectorAll('.saisie-compte').forEach(function (c) { c.addEventListener('input', calculerCaisse); });
+    fond.addEventListener('input', calculerCaisse);
+    document.querySelectorAll('.saisie-stock').forEach(function (c) { c.addEventListener('input', calculerStock); });
+    document.getElementById('recherche-inventaire').addEventListener('input', function () {
+      var texte = this.value.trim().toLowerCase();
+      document.querySelectorAll('.ligne-inventaire').forEach(function (l) { l.hidden = texte && l.dataset.nom.indexOf(texte) === -1; });
+    });
+    // Évite qu'Entrée dans un champ de comptage ne valide la clôture par erreur
+    document.getElementById('formulaire-cloture').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); }
+    });
+    calculerCaisse();
+    calculerStock();
+  })();
+</script>
+{% endblock %}

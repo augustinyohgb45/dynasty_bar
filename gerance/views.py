@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from audit.models import JournalAudit
 from caisse.models import Commande, LigneCommande, Paiement
+from caisse.cloture import cloture_validee, soiree_courante
 from caisse.services import debut_soiree, encaissements_par_mode
 from comptes.decorators import gerant_requis
 from stock.models import MouvementStock, Produit
@@ -119,6 +120,7 @@ def tableau_de_bord(request):
         'montant_ouvert': sum(c.montant_total - c.montant_paye for c in ouvertes),
         'derniers_achats': Achat.objects.select_related('utilisateur')[:5],
         'activites': JournalAudit.objects.all()[:8],
+        'cloture_soiree': cloture_validee(soiree_courante()),
     }
     return render(request, 'gerance/tableau_de_bord.html', context)
 

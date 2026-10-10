@@ -12,6 +12,13 @@
     <a href="{% url 'ventes' %}" class="btn"><i class="fas fa-chart-line"></i> Ventes de la soirée</a>
 </div>
 
+{% if cloture %}
+<div class="messages"><div class="message attention"><i class="fas fa-lock"></i>
+    <span>La soirée est clôturée depuis {{ cloture.date|date:"H:i" }} (par {{ cloture.par.username }}) : aucune nouvelle commande n'est possible.
+    {% if user.is_superuser %}<a href="{% url 'cloture_detail' cloture.pk %}">Voir le rapport ou rouvrir la soirée</a>{% else %}Adressez-vous au gérant.{% endif %}</span>
+</div></div>
+{% endif %}
+
 {% for libelle, liste in zones %}
 <section class="zone-tables">
     <h2 class="titre-zone">{{ libelle }}</h2>

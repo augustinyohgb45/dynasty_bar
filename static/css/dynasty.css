@@ -383,3 +383,20 @@ a.filtre.actif { color: #1a1406; }
     .grille-ligne-achat .retirer-ligne { margin: 0 0 14px; }
 }
 .recherche .interrupteur input { min-width: 0; width: 40px; padding: 0; }
+
+/* ---------- Clôture de soirée ---------- */
+.etroit-champ { max-width: 320px; }
+.indicateur .valeur.negatif { color: var(--rouge); }
+.indicateur .valeur.positif { color: var(--vert); }
+.ligne-comptage input, .ligne-inventaire input { max-width: 150px; padding: 7px 10px; }
+
+/* Impression des rapports : fond clair, sans menu */
+@media print {
+    body { background: #fff; color: #000; }
+    .barre-laterale, .barre-mobile, .masquer-impression, .messages { display: none !important; }
+    .contenu { padding: 0; }
+    .panneau, .indicateur { background: #fff; border-color: #ccc; break-inside: avoid; }
+    .indicateur .libelle, .texte-discret, .tableau .discret, .indicateur .note { color: #555; }
+    .hauteur-limitee { max-height: none; overflow: visible; }
+    .icone { display: none !important; }
+}

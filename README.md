@@ -39,6 +39,22 @@ Après connexion, le gérant arrive sur le tableau de bord et le personnel sur l
   prix unitaire). Le stock et le prix d'achat de chaque boisson sont mis à jour. Une boisson qui
   n'existe pas encore se crée directement depuis l'achat (nom, catégorie, prix de vente).
 
+## Clôture de soirée
+
+Menu Caisse > « Clôture de soirée » (gérant), en fin de service :
+
+1. **Vérifications** : toutes les additions doivent être encaissées ou annulées.
+2. **Comptage de la caisse** : saisir le fond de caisse du début de soirée, puis le montant compté
+   pour chaque mode (tiroir-caisse, relevés MoMo, Orange Money, Moov Money, Wave, terminal de carte).
+   L'écart avec le montant attendu s'affiche en direct.
+3. **Inventaire** : compter les bouteilles restantes (une boisson laissée vide n'est pas modifiée).
+   Les écarts sont corrigés dans le stock et valorisés au prix d'achat.
+4. **Validation** : le bilan est figé (rapport imprimable) et la caisse refuse les nouvelles
+   commandes de cette soirée. Le gérant peut rouvrir la soirée avec un motif ; la clôture et la
+   réouverture sont inscrites au journal d'audit.
+
+L'historique des clôtures montre, soirée par soirée, les écarts de caisse et de stock.
+
 ## Journal d'audit
 
 Chaque action est enregistrée avec son auteur, l'heure et l'appareil (adresse IP) :

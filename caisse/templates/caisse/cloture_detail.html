@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}{{ cloture }}{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Soirée du {{ cloture.soiree|date:"l j F Y" }}
+            {% if cloture.est_validee %}<span class="badge badge-ok">Clôturée</span>{% else %}<span class="badge badge-rupture">Rouverte</span>{% endif %}</h1>
+        <p class="sous-titre">Clôturée le {{ cloture.date|date:"d/m/Y à H:i" }} par {{ cloture.par.username }}{% if cloture.note %} · {{ cloture.note }}{% endif %}</p>
+    </div>
+    <div class="actions masquer-impression">
+        <button type="button" class="btn" onclick="window.print()"><i class="fas fa-print"></i> Imprimer</button>
+        <a href="{% url 'clotures' %}" class="btn"><i class="fas fa-history"></i> Toutes les clôtures</a>
+    </div>
+</div>
+
+{% if not cloture.est_validee %}
+<div class="messages"><div class="message attention"><i class="fas fa-unlock"></i>
+    <span>Rouverte le {{ cloture.date_reouverture|date:"d/m/Y à H:i" }} par {{ cloture.rouverte_par.username }} · motif : {{ cloture.motif_reouverture }}.
+    <a href="{% url 'cloturer' %}?jour={{ cloture.soiree|date:'Y-m-d' }}">Clôturer de nouveau</a></span>
+</div></div>
+{% endif %}
+
+<div class="indicateurs">
+    <div class="indicateur"><div><div class="libelle">Chiffre d'affaires</div><div class="valeur">{{ cloture.chiffre_affaires|fcfa }}</div><div class="note">{{ cloture.nb_commandes }} commande{{ cloture.nb_commandes|pluralize }} · {{ cloture.nb_annulees }} annulée{{ cloture.nb_annulees|pluralize }}</div></div><div class="icone icone-or"><i class="fas fa-chart-line"></i></div></div>
+    <div class="indicateur"><div><div class="libelle">Encaissé</div><div class="valeur">{{ cloture.total_encaisse|fcfa }}</div><div class="note">fond de caisse : {{ cloture.fond_de_caisse|fcfa }}</div></div><div class="icone icone-vert"><i class="fas fa-cash-register"></i></div></div>
+    <div class="indicateur"><div><div class="libelle">Écart de caisse</div><div class="valeur {% if cloture.ecart_caisse < 0 %}negatif{% elif cloture.ecart_caisse > 0 %}positif{% endif %}">{% if cloture.ecart_caisse > 0 %}+{% endif %}{{ cloture.ecart_caisse|fcfa }}</div><div class="note">{% if cloture.ecart_caisse < 0 %}manque{% elif cloture.ecart_caisse > 0 %}excédent{% else %}caisse juste{% endif %}</div></div><div class="icone {% if cloture.ecart_caisse %}icone-rouge{% else %}icone-vert{% endif %}"><i class="fas fa-balance-scale"></i></div></div>
+    <div class="indicateur"><div><div class="libelle">Écart de stock</div><div class="valeur {% if cloture.ecart_stock < 0 %}negatif{% elif cloture.ecart_stock > 0 %}positif{% endif %}">{% if cloture.ecart_stock > 0 %}+{% endif %}{{ cloture.ecart_stock|fcfa }}</div><div class="note">{{ ecarts_inventaire|length }} boisson{{ ecarts_inventaire|length|pluralize }} en écart sur {{ inventaire|length }} comptée{{ inventaire|length|pluralize }}</div></div><div class="icone {% if cloture.ecart_stock %}icone-rouge{% else %}icone-vert{% endif %}"><i class="fas fa-boxes"></i></div></div>
+</div>
+
+<div class="grille-ventes">
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-cash-register"></i>Comptage de la caisse</h2></div>
+        <table class="tableau">
+            <thead><tr><th>Mode</th><th class="nombre">Attendu</th><th class="nombre">Compté</th><th class="nombre">Écart</th></tr></thead>
+            <tbody>
+                {% for c in comptages %}
+                <tr><td class="fort">{{ c.get_mode_display }}</td><td class="nombre">{{ c.attendu|fcfa }}</td><td class="nombre">{{ c.compte|fcfa }}</td>
+                    <td class="nombre fort {% if c.ecart < 0 %}negatif{% elif c.ecart > 0 %}positif{% endif %}">{% if c.ecart %}{% if c.ecart > 0 %}+{% endif %}{{ c.ecart|fcfa }}{% else %}OK{% endif %}</td></tr>
+                {% empty %}
+                <tr><td colspan="4" class="vide">Aucun comptage.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-user-tie"></i>Par serveur</h2></div>
+        <table class="tableau">
+            <tbody>
+                {% for s in par_serveur %}
+                <tr><td class="fort">{{ s.nom }}</td><td class="discret">{{ s.nb }} commande{{ s.nb|pluralize }}</td><td class="nombre fort">{{ s.total|fcfa }}</td></tr>
+                {% empty %}
+                <tr><td class="vide">Aucune vente.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-user-secret"></i>Points de vigilance</h2></div>
+        <table class="tableau">
+            <tbody>
+                {% for c in annulees %}<tr><td><span class="badge badge-rupture">Annulation</span></td><td>{{ c.emplacement }} {{ c.numero }} · {{ c.serveur.username }}<div class="discret">{{ c.motif_annulation }}</div></td></tr>{% endfor %}
+                {% for r in retraits %}<tr><td><span class="badge badge-rupture">Retrait</span></td><td>{{ r.objet }} · {{ r.nom_utilisateur }}<div class="discret">{{ r.details }}</div></td></tr>{% endfor %}
+                {% for m in pertes %}<tr><td><span class="badge badge-alerte">{{ m.get_type_display }}</span></td><td>{{ m.quantite }} × {{ m.produit }} · {{ m.utilisateur.username|default:"—" }}<div class="discret">{{ m.motif }}</div></td></tr>{% endfor %}
+                {% if not annulees and not retraits and not pertes %}<tr><td class="vide">Aucune annulation, aucun retrait, aucune perte.</td></tr>{% endif %}
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<div class="grille-ventes">
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-boxes"></i>Inventaire de fin de service</h2></div>
+        <div class="tableau-conteneur hauteur-limitee">
+            <table class="tableau">
+                <thead><tr><th>Boisson</th><th class="nombre">Théorique</th><th class="nombre">Compté</th><th class="nombre">Écart</th><th class="nombre">Valeur</th></tr></thead>
+                <tbody>
+                    {% for l in inventaire %}
+                    <tr><td class="fort">{{ l.produit }}</td><td class="nombre">{{ l.theorique }}</td><td class="nombre">{{ l.compte }}</td>
+                        <td class="nombre fort {% if l.ecart < 0 %}negatif{% elif l.ecart > 0 %}positif{% endif %}">{% if l.ecart %}{{ l.ecart|stringformat:"+d" }}{% else %}OK{% endif %}</td>
+                        <td class="nombre">{% if l.ecart %}{{ l.valeur_ecart|fcfa }}{% endif %}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="vide">Aucune boisson comptée lors de cette clôture.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-wine-bottle"></i>Articles vendus</h2></div>
+        <div class="tableau-conteneur hauteur-limitee">
+            <table class="tableau">
+                <tbody>
+                    {% for a in articles %}
+                    <tr><td>{{ a.produit__nom }}</td><td class="nombre">{{ a.nb }}</td><td class="nombre fort">{{ a.total|fcfa }}</td></tr>
+                    {% empty %}
+                    <tr><td class="vide">Aucun article vendu.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+{% if cloture.est_validee %}
+<section class="panneau etroit masquer-impression">
+    <details class="panneau-corps annulation">
+        <summary>Rouvrir cette soirée</summary>
+        <form method="post" action="{% url 'rouvrir' cloture.pk %}">
+            {% csrf_token %}
+            <p class="texte-discret">La caisse acceptera de nouveau les commandes pour cette soirée. Les corrections de stock déjà faites sont conservées. Cette action est inscrite au journal d'audit.</p>
+            <div class="champ">
+                <label for="motif">Motif</label>
+                <input type="text" name="motif" id="motif" required maxlength="255" placeholder="Ex. : clients arrivés après la clôture, erreur de comptage…">
+            </div>
+            <button type="submit" class="btn btn-bloc"><i class="fas fa-unlock"></i> Rouvrir la soirée</button>
+        </form>
+    </details>
+</section>
+{% endif %}
+{% endblock %}

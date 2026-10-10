@@ -16,7 +16,7 @@ from audit.journal import fcfa, journaliser
 from audit.models import JournalAudit
 from stock.models import MouvementStock, Produit
 
-from .models import Commande, LigneCommande, Paiement
+from .models import Cloture, Commande, LigneCommande, Paiement
 
 
 class ErreurCaisse(Exception):
@@ -29,6 +29,10 @@ def _objet(commande):
 
 def ouvrir_commande(table, utilisateur, client=''):
     """Ouvre une commande, ou reprend celle déjà ouverte sur la table."""
+    jour = timezone.localtime(debut_soiree()).date()
+    if Cloture.objects.filter(soiree=jour, statut=Cloture.VALIDEE).exists():
+        raise ErreurCaisse(f"La soirée du {jour:%d/%m/%Y} est clôturée : aucune nouvelle commande n'est possible. "
+                           "Le gérant peut la rouvrir si nécessaire.")
     if table is not None:
         existante = Commande.objects.filter(table=table, statut=Commande.OUVERTE).first()
         if existante is not None:

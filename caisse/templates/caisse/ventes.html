@@ -7,13 +7,20 @@
 <div class="entete-page">
     <div>
         <h1>Soirée du {{ jour|date:"l j F Y" }}</h1>
-        <p class="sous-titre">Du {{ debut|date:"d/m H:i" }} au {{ fin|date:"d/m H:i" }}{% if not user.is_superuser %} · vos commandes uniquement{% endif %}.</p>
+        <p class="sous-titre">{% if cloture %}<span class="badge badge-ok">Clôturée</span> {% endif %}Du {{ debut|date:"d/m H:i" }} au {{ fin|date:"d/m H:i" }}{% if not user.is_superuser %} · vos commandes uniquement{% endif %}.</p>
     </div>
     <div class="actions">
         <a href="?jour={{ veille|date:'Y-m-d' }}" class="btn"><i class="fas fa-chevron-left"></i> Veille</a>
         {% if not est_soiree_actuelle %}
         <a href="?jour={{ lendemain|date:'Y-m-d' }}" class="btn">Lendemain <i class="fas fa-chevron-right"></i></a>
-        <a href="{% url 'ventes' %}" class="btn btn-or">Ce soir</a>
+        <a href="{% url 'ventes' %}" class="btn">Ce soir</a>
+        {% endif %}
+        {% if user.is_superuser %}
+        {% if cloture %}
+        <a href="{% url 'cloture_detail' cloture.pk %}" class="btn"><i class="fas fa-lock"></i> Rapport de clôture</a>
+        {% else %}
+        <a href="{% url 'cloturer' %}?jour={{ jour|date:'Y-m-d' }}" class="btn btn-or"><i class="fas fa-lock"></i> Clôturer la soirée</a>
+        {% endif %}
         {% endif %}
     </div>
 </div>

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}Clôtures de soirée{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Clôtures de soirée</h1>
+        <p class="sous-titre">Historique des clôtures, avec les écarts de caisse et de stock.</p>
+    </div>
+    <a href="{% url 'cloturer' %}" class="btn btn-or"><i class="fas fa-lock"></i> Clôturer la soirée</a>
+</div>
+
+<section class="panneau">
+    <div class="tableau-conteneur">
+        <table class="tableau">
+            <thead><tr><th>Soirée</th><th>Clôturée par</th><th class="nombre">Chiffre d'affaires</th><th class="nombre">Encaissé</th><th class="nombre">Écart caisse</th><th class="nombre">Écart stock</th><th>État</th><th></th></tr></thead>
+            <tbody>
+                {% for c in page_clotures %}
+                <tr>
+                    <td class="fort">{{ c.soiree|date:"D d/m/Y" }}</td>
+                    <td>{{ c.par.username }}<div class="discret">{{ c.date|date:"d/m H:i" }}</div></td>
+                    <td class="nombre">{{ c.chiffre_affaires|fcfa }}</td>
+                    <td class="nombre">{{ c.total_encaisse|fcfa }}</td>
+                    <td class="nombre fort {% if c.ecart_caisse < 0 %}negatif{% elif c.ecart_caisse > 0 %}positif{% endif %}">{% if c.ecart_caisse %}{% if c.ecart_caisse > 0 %}+{% endif %}{{ c.ecart_caisse|fcfa }}{% else %}OK{% endif %}</td>
+                    <td class="nombre fort {% if c.ecart_stock < 0 %}negatif{% elif c.ecart_stock > 0 %}positif{% endif %}">{% if c.ecart_stock %}{% if c.ecart_stock > 0 %}+{% endif %}{{ c.ecart_stock|fcfa }}{% else %}OK{% endif %}</td>
+                    <td>{% if c.est_validee %}<span class="badge badge-ok">Clôturée</span>{% else %}<span class="badge badge-rupture">Rouverte</span>{% endif %}</td>
+                    <td class="nombre"><a href="{% url 'cloture_detail' c.pk %}" class="btn btn-petit">Rapport</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="vide">Aucune soirée clôturée pour l'instant.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_clotures.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Pages">
+        {% if page_clotures.has_previous %}<a class="btn btn-petit" href="?page={{ page_clotures.previous_page_number }}"><i class="fas fa-chevron-left"></i> Précédent</a>{% endif %}
+        <span class="texte-discret">Page {{ page_clotures.number }} / {{ page_clotures.paginator.num_pages }}</span>
+        {% if page_clotures.has_next %}<a class="btn btn-petit" href="?page={{ page_clotures.next_page_number }}">Suivant <i class="fas fa-chevron-right"></i></a>{% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

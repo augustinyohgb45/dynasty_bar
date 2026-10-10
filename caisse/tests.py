@@ -5,10 +5,11 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from audit.models import JournalAudit
 from stock.models import Categorie, MouvementStock, Produit
 
 from . import services
-from .models import Commande, Paiement, Table
+from .models import Cloture, Commande, Paiement, Table
 
 
 class BaseCaisse(TestCase):
@@ -178,3 +179,76 @@ class SoireeTests(BaseCaisse):
             self.assertEqual(self.client.get(url).status_code, 200, url)
         self.client.logout()
         self.assertEqual(self.client.get(reverse('tables')).status_code, 302)
+
+
+class ClotureTests(BaseCaisse):
+    def setUp(self):
+        super().setUp()
+        from . import cloture
+        self.cloture = cloture
+        self.jour = cloture.soiree_courante()
+        commande = self.ouvrir()
+        self.ajouter(commande, self.moet)                      # 50 000
+        self.payer(commande, Paiement.ESPECES, 20000)
+        self.payer(commande, Paiement.MTN_MOMO, 30000, reference='MP1')
+        self.client.force_login(self.gerant)
+
+    def cloturer(self, **donnees):
+        return self.client.post(reverse('cloturer'), dict({'fond_de_caisse': 10000}, **donnees))
+
+    def test_reservee_au_gerant(self):
+        self.client.force_login(self.serveur)
+        self.assertEqual(self.client.get(reverse('cloturer')).status_code, 403)
+
+    def test_cloture_avec_ecarts_de_caisse_et_de_stock(self):
+        # Espèces attendues : 10 000 de fond + 20 000 encaissés ; il manque 1 000
+        reponse = self.cloturer(compte_especes=29000, compte_mtn_momo=30000,
+                                **{f'stock_{self.moet.pk}': 3, f'stock_{self.biere.pk}': 24})
+        resultat = Cloture.objects.get()
+        self.assertRedirects(reponse, reverse('cloture_detail', args=[resultat.pk]))
+        self.assertEqual((resultat.chiffre_affaires, resultat.total_encaisse, resultat.ecart_caisse), (50000, 50000, -1000))
+        # Moet : 4 en théorie, 3 comptés → 1 bouteille manquante valorisée au prix d'achat
+        self.assertEqual(resultat.ecart_stock, -30000)
+        self.assertEqual(self.moet.stock_actuel, 3)
+        self.assertEqual(self.biere.stock_actuel, 24)
+        self.assertEqual(resultat.inventaire.count(), 2)
+        journal = JournalAudit.objects.get(action='cloture')
+        self.assertIn('Caisse Espèces : attendu 30', journal.details)
+
+    def test_montant_compte_obligatoire_pour_les_modes_encaisses(self):
+        reponse = self.cloturer(compte_especes=30000)
+        self.assertContains(reponse, 'Indiquez le montant compté pour MTN MoMo')
+        self.assertFalse(Cloture.objects.exists())
+        self.assertEqual(self.moet.stock_actuel, 4)
+
+    def test_refusee_si_une_addition_est_ouverte(self):
+        commande = self.ouvrir()
+        self.ajouter(commande, self.biere)
+        reponse = self.cloturer(compte_especes=30000, compte_mtn_momo=30000)
+        self.assertContains(reponse, 'encore ouvertes')
+        self.assertFalse(Cloture.objects.exists())
+
+    def test_soiree_cloturee_bloque_les_commandes_jusqu_a_reouverture(self):
+        self.cloturer(compte_especes=30000, compte_mtn_momo=30000)
+        resultat = Cloture.objects.get()
+        self.assertEqual(resultat.ecart_caisse, 0)
+        self.client.force_login(self.serveur)
+        self.client.post(reverse('ouvrir_table', args=[self.table.pk]))
+        self.assertFalse(Commande.objects.filter(statut=Commande.OUVERTE).exists())
+        # Une deuxième clôture de la même soirée renvoie vers le rapport existant
+        self.client.force_login(self.gerant)
+        self.assertRedirects(self.client.get(reverse('cloturer')), reverse('cloture_detail', args=[resultat.pk]))
+
+        self.client.post(reverse('rouvrir', args=[resultat.pk]), {'motif': 'clients arrivés tard'})
+        resultat.refresh_from_db()
+        self.assertEqual(resultat.statut, Cloture.ROUVERTE)
+        self.assertTrue(JournalAudit.objects.filter(action='reouverture').exists())
+        self.client.force_login(self.serveur)
+        self.ouvrir()  # les commandes sont de nouveau possibles
+
+    def test_rapport_et_historique(self):
+        self.cloturer(compte_especes=30000, compte_mtn_momo=30000)
+        resultat = Cloture.objects.get()
+        self.assertContains(self.client.get(reverse('cloture_detail', args=[resultat.pk])), 'Comptage de la caisse')
+        self.assertContains(self.client.get(reverse('clotures')), 'Rapport')
+        self.assertContains(self.client.get(reverse('tables')), 'clôturée')

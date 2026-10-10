@@ -7,7 +7,7 @@
 <div class="entete-page">
     <div>
         <h1>Mouvements de stock</h1>
-        <p class="sous-titre">Réceptions, ventes{% if user.is_superuser %}, casses, offerts et ajustements d'inventaire{% endif %}.</p>
+        <p class="sous-titre">Réceptions{% if user.is_superuser %}, casses, offerts et ajustements d'inventaire{% endif %} · les ventes se font depuis la caisse.</p>
     </div>
     <a href="{% url 'stock' %}" class="btn"><i class="fas fa-boxes"></i> Voir le stock</a>
 </div>

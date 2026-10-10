@@ -17,7 +17,7 @@
 
 <div class="layout">
     <nav class="barre-laterale">
-        <a class="marque" href="{% url 'stock' %}">
+        <a class="marque" href="{% url 'tables' %}">
             <span class="logo">D</span>
             <span>
                 <span class="nom">DYNASTY</span><br>
@@ -26,6 +26,9 @@
         </a>
 
         <ul class="menu">
+            <li class="titre">Caisse</li>
+            <li><a href="{% url 'tables' %}" class="{% if page == 'tables' or page == 'commande' %}actif{% endif %}"><i class="fas fa-cash-register"></i> Tables et commandes</a></li>
+            <li><a href="{% url 'ventes' %}" class="{% if page == 'ventes' %}actif{% endif %}"><i class="fas fa-chart-line"></i> Ventes de la soirée</a></li>
             <li class="titre">Stock</li>
             <li><a href="{% url 'stock' %}" class="{% if page == 'stock' or page == 'produit_nouveau' or page == 'produit_modifier' %}actif{% endif %}"><i class="fas fa-wine-bottle"></i> État du stock</a></li>
             <li><a href="{% url 'mouvements' %}" class="{% if page == 'mouvements' %}actif{% endif %}"><i class="fas fa-exchange-alt"></i> Mouvements</a></li>

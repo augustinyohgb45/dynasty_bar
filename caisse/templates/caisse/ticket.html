@@ -1,0 +1,58 @@
+{% load stock_extras %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ticket {{ commande.numero }} · Dynasty Night Club</title>
+    <style>
+        /* Ticket pour imprimante thermique 80 mm */
+        body { margin: 0; background: #e9e9ee; font: 13px/1.4 "Courier New", monospace; color: #000; }
+        .ticket { width: 72mm; margin: 16px auto; padding: 4mm; background: #fff; }
+        .centre { text-align: center; }
+        .nom { font-size: 18px; font-weight: bold; letter-spacing: 3px; }
+        hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        td { vertical-align: top; padding: 1px 0; }
+        td.montant { text-align: right; white-space: nowrap; }
+        .total td { font-weight: bold; font-size: 15px; }
+        .actions { text-align: center; margin: 16px; font-family: system-ui, sans-serif; }
+        .actions button { padding: 8px 18px; font-size: 14px; cursor: pointer; }
+        @media print {
+            body { background: #fff; }
+            .ticket { margin: 0; width: auto; }
+            .actions { display: none; }
+            @page { size: 80mm auto; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="ticket">
+    <div class="centre">
+        <div class="nom">DYNASTY</div>
+        <div>NIGHT CLUB</div>
+    </div>
+    <hr>
+    <div>{% if commande.statut == 'payee' %}Ticket{% else %}Addition{% endif %} {{ commande.numero }} · {{ commande.emplacement }}</div>
+    <div>{{ maintenant|date:"d/m/Y H:i" }} · servi par {{ commande.serveur.username }}</div>
+    {% if commande.client %}<div>Client : {{ commande.client }}</div>{% endif %}
+    <hr>
+    <table>
+        {% for ligne in lignes %}
+        <tr><td>{{ ligne.quantite }} × {{ ligne.produit }}</td><td class="montant">{{ ligne.montant|fcfa }}</td></tr>
+        {% endfor %}
+    </table>
+    <hr>
+    <table>
+        <tr class="total"><td>TOTAL</td><td class="montant">{{ total|fcfa }}</td></tr>
+        {% for paiement in paiements %}
+        <tr><td>{{ paiement.get_mode_display }}</td><td class="montant">{{ paiement.montant|fcfa }}</td></tr>
+        {% endfor %}
+        {% if total_paye %}<tr><td>Reste à payer</td><td class="montant">{{ reste|fcfa }}</td></tr>{% endif %}
+    </table>
+    {% if commande.statut == 'annulee' %}<hr><div class="centre">*** COMMANDE ANNULÉE ***</div>{% endif %}
+    <hr>
+    <div class="centre">Merci de votre visite !</div>
+</div>
+<div class="actions"><button type="button" onclick="window.print()">Imprimer</button></div>
+</body>
+</html>

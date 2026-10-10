@@ -85,18 +85,23 @@ class MouvementsTests(TestCase):
     def poster(self, **donnees):
         return self.client.post(reverse('mouvements'), dict({'produit': self.produit.pk}, **donnees))
 
-    def test_entree_puis_vente(self):
+    def test_reception_au_prix_saisi(self):
         self.client.force_login(self.serveur)
+        self.poster(type='entree', quantite=5, prix_achat=28000)
+        entree = MouvementStock.objects.get(type='entree')
+        self.assertEqual((entree.quantite, entree.prix_unitaire, entree.montant), (5, 28000, 140000))
+        self.assertEqual(self.produit.stock_actuel, 5)
+
+    def test_vente_manuelle_impossible(self):
+        # Les ventes passent uniquement par la caisse
+        self.client.force_login(self.admin)
         self.poster(type='entree', quantite=5)
         self.poster(type='vente', quantite=2)
-        self.assertEqual(self.produit.stock_actuel, 3)
-        vente = MouvementStock.objects.get(type='vente')
-        self.assertEqual((vente.quantite, vente.prix_unitaire, vente.montant), (-2, 50000, 100000))
-        self.assertEqual(self.produit.etat(), 'alerte')
+        self.assertEqual(self.produit.stock_actuel, 5)
 
-    def test_vente_refusee_si_stock_insuffisant(self):
-        self.client.force_login(self.serveur)
-        reponse = self.poster(type='vente', quantite=1)
+    def test_sortie_refusee_si_stock_insuffisant(self):
+        self.client.force_login(self.admin)
+        reponse = self.poster(type='casse', quantite=1, motif='tombée')
         self.assertContains(reponse, 'Stock insuffisant')
         self.assertFalse(MouvementStock.objects.exists())
 

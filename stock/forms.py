@@ -60,9 +60,11 @@ class MouvementForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.utilisateur = utilisateur
         self.fields['produit'].label_from_instance = lambda p: f"{p.nom} — {p.categorie}"
+        # Les ventes passent par la caisse, pour être rattachées à une commande et à un paiement
+        exclus = {MouvementStock.VENTE}
         if utilisateur is None or not utilisateur.is_superuser:
-            self.fields['type'].choices = [
-                (cle, libelle) for cle, libelle in MouvementStock.TYPES if cle not in MouvementStock.TYPES_RESERVES]
+            exclus |= MouvementStock.TYPES_RESERVES
+        self.fields['type'].choices = [(cle, libelle) for cle, libelle in MouvementStock.TYPES if cle not in exclus]
 
     def clean(self):
         donnees = super().clean()
@@ -89,9 +91,7 @@ class MouvementForm(forms.Form):
     def creer_mouvement(self):
         d = self.cleaned_data
         produit, type_mvt = d['produit'], d['type']
-        if type_mvt == MouvementStock.VENTE:
-            prix = produit.prix_vente
-        elif type_mvt == MouvementStock.ENTREE and d.get('prix_achat') is not None:
+        if type_mvt == MouvementStock.ENTREE and d.get('prix_achat') is not None:
             prix = d['prix_achat']
         else:
             prix = produit.prix_achat

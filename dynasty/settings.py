@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'comptes',
     'stock',
+    'caisse',
 ]
 
 MIDDLEWARE = [
@@ -71,7 +72,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_URL = 'connexion'
-LOGIN_REDIRECT_URL = 'stock'
+LOGIN_REDIRECT_URL = 'tables'
 
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = os.environ.get('TIME_ZONE', 'Africa/Abidjan')
@@ -95,3 +96,7 @@ MESSAGE_TAGS = {
     messages.WARNING: 'attention',
     messages.ERROR: 'erreur',
 }
+
+# Une soirée commence à cette heure et se termine à la même heure le lendemain :
+# les ventes après minuit restent rattachées à la soirée de la veille.
+HEURE_DEBUT_SOIREE = int(os.environ.get('HEURE_DEBUT_SOIREE', 12))

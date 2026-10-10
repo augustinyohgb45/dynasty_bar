@@ -269,3 +269,76 @@ input[type=file] { color: var(--texte-2); font: inherit; }
 }
 
 .titre-section { margin-top: 16px; margin-bottom: 6px; }
+
+/* ---------- Caisse : plan des tables ---------- */
+.zone-tables { margin-bottom: 24px; }
+.titre-zone { font-size: .75rem; text-transform: uppercase; letter-spacing: .14em; color: var(--texte-2); margin-bottom: 10px; }
+.plan-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.plan-tables form { margin: 0; }
+
+.carte-table {
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    width: 100%; min-height: 104px; padding: 14px;
+    border-radius: var(--rayon); border: 1px solid var(--bordure);
+    background: var(--surface); color: var(--texte); font: inherit; text-align: left; cursor: pointer;
+}
+.carte-table:hover { border-color: var(--or-fonce); color: var(--texte); }
+.carte-table.libre { border-style: dashed; }
+.carte-table.libre .detail-table { color: var(--or); }
+.carte-table.occupee { background: linear-gradient(160deg, rgba(212, 175, 55, .18), var(--surface) 70%); border-color: var(--or-fonce); }
+.nom-table { font-weight: 800; font-size: 1.05rem; }
+.montant-table { font-weight: 700; color: var(--or); font-variant-numeric: tabular-nums; }
+.detail-table { font-size: .78rem; color: var(--texte-2); }
+
+/* ---------- Caisse : prise de commande ---------- */
+.grille-caisse { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 380px); gap: 24px; align-items: start; }
+.ticket-panneau { position: sticky; top: 16px; }
+.quantite-multiple { display: flex; align-items: center; gap: 8px; color: var(--texte-2); font-size: .82rem; font-weight: 600; }
+.recherche .quantite-multiple input { min-width: 0; width: 70px; }
+
+.grille-produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; padding: 16px; }
+.grille-produits form { margin: 0; }
+.bouton-produit {
+    display: flex; flex-direction: column; gap: 4px; justify-content: space-between;
+    width: 100%; min-height: 96px; padding: 12px;
+    border-radius: 10px; border: 1px solid var(--bordure); background: var(--surface-2);
+    color: var(--texte); font: inherit; text-align: left; cursor: pointer;
+}
+.bouton-produit:hover:not(:disabled) { border-color: var(--or); }
+.bouton-produit:active:not(:disabled) { transform: scale(.97); }
+.bouton-produit:disabled { opacity: .45; cursor: not-allowed; }
+.nom-produit { font-weight: 700; font-size: .9rem; line-height: 1.25; }
+.prix-produit { color: var(--or); font-weight: 700; font-size: .85rem; }
+.stock-produit { color: var(--texte-2); font-size: .72rem; }
+
+.totaux { padding: 14px 20px; border-top: 1px solid var(--bordure); display: grid; gap: 6px; }
+.ligne-total { display: flex; justify-content: space-between; gap: 12px; color: var(--texte-2); font-variant-numeric: tabular-nums; }
+.ligne-total.grand { color: var(--texte); font-size: 1.15rem; font-weight: 800; }
+.ligne-total.grand.negatif { color: var(--orange); }
+
+.formulaire-paiement { border-top: 1px solid var(--bordure); }
+.modes-paiement { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+.mode-paiement { position: relative; }
+.mode-paiement input { position: absolute; opacity: 0; }
+.mode-paiement span {
+    display: block; text-align: center; padding: 9px 4px; border-radius: 8px;
+    border: 1px solid var(--bordure); color: var(--texte-2); font-size: .8rem; font-weight: 600; cursor: pointer;
+}
+.mode-paiement input:checked + span { border-color: var(--or); color: var(--or); background: rgba(212, 175, 55, .1); }
+.mode-paiement input:focus-visible + span { box-shadow: 0 0 0 3px rgba(212, 175, 55, .3); }
+.montants-rapides { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 14px; }
+.monnaie { margin: 0 0 14px; padding: 10px 14px; border-radius: 8px; background: rgba(62, 207, 142, .12); color: var(--vert); font-weight: 700; }
+
+.annulation { border-top: 1px solid var(--bordure); }
+.annulation summary { cursor: pointer; color: var(--texte-2); font-size: .85rem; margin-bottom: 4px; }
+.annulation[open] summary { margin-bottom: 12px; }
+
+/* ---------- Caisse : ventes de la soirée ---------- */
+.grille-ventes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 24px; align-items: start; }
+
+@media (max-width: 760px) {
+    .grille-caisse { grid-template-columns: 1fr; }
+    .ticket-panneau { position: static; }
+}
+.lien-addition { display: none; }
+@media (max-width: 760px) { .lien-addition { display: inline-flex; } }

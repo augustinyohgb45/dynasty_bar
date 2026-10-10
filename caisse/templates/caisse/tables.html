@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}Caisse{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Caisse</h1>
+        <p class="sous-titre">{{ nb_occupees }} table{{ nb_occupees|pluralize }} occupée{{ nb_occupees|pluralize }} · {{ montant_en_cours|fcfa }} en attente d'encaissement.</p>
+    </div>
+    <a href="{% url 'ventes' %}" class="btn"><i class="fas fa-chart-line"></i> Ventes de la soirée</a>
+</div>
+
+{% for libelle, liste in zones %}
+<section class="zone-tables">
+    <h2 class="titre-zone">{{ libelle }}</h2>
+    <div class="plan-tables">
+        {% for table in liste %}
+        {% if table.commande %}
+        <a href="{% url 'commande' table.commande.pk %}" class="carte-table occupee">
+            <span class="nom-table">{{ table.nom }}</span>
+            <span class="montant-table">{{ table.commande.montant_total|fcfa }}</span>
+            {% if table.commande.montant_paye %}<span class="detail-table">reste {{ table.commande.reste_du|fcfa }}</span>{% endif %}
+            <span class="detail-table"><i class="fas fa-user"></i> {{ table.commande.serveur.username }} · {{ table.commande.date_ouverture|time:"H:i" }}</span>
+        </a>
+        {% else %}
+        <form method="post" action="{% url 'ouvrir_table' table.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="carte-table libre">
+                <span class="nom-table">{{ table.nom }}</span>
+                <span class="detail-table"><i class="fas fa-plus"></i> Ouvrir</span>
+            </button>
+        </form>
+        {% endif %}
+        {% endfor %}
+    </div>
+</section>
+{% empty %}
+<p class="texte-discret">Aucune table configurée. Le gérant peut en ajouter dans « Comptes et réglages ».</p>
+{% endfor %}
+
+<section class="panneau">
+    <div class="panneau-entete">
+        <h2><i class="fas fa-glass-cheers"></i>Comptoir</h2>
+        <form method="post" action="{% url 'ouvrir_comptoir' %}" class="recherche">
+            {% csrf_token %}
+            <input type="text" name="client" placeholder="Nom du client (facultatif)" aria-label="Nom du client" maxlength="80">
+            <button type="submit" class="btn btn-or"><i class="fas fa-plus"></i> Nouvelle vente</button>
+        </form>
+    </div>
+    {% if comptoir %}
+    <div class="tableau-conteneur">
+        <table class="tableau">
+            <thead><tr><th>Commande</th><th>Client</th><th>Serveur</th><th>Ouverte à</th><th class="nombre">Total</th><th></th></tr></thead>
+            <tbody>
+                {% for c in comptoir %}
+                <tr>
+                    <td class="fort">{{ c.numero }}</td>
+                    <td>{{ c.client|default:"—" }}</td>
+                    <td>{{ c.serveur.username }}</td>
+                    <td class="discret">{{ c.date_ouverture|time:"H:i" }}</td>
+                    <td class="nombre fort">{{ c.montant_total|fcfa }}</td>
+                    <td class="nombre"><a href="{% url 'commande' c.pk %}" class="btn btn-petit">Ouvrir</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="panneau-corps texte-discret">Aucune vente au comptoir en cours.</div>
+    {% endif %}
+</section>
+{% endblock %}

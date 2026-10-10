@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}Ventes de la soirée{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Soirée du {{ jour|date:"l j F Y" }}</h1>
+        <p class="sous-titre">Du {{ debut|date:"d/m H:i" }} au {{ fin|date:"d/m H:i" }}{% if not user.is_superuser %} · vos commandes uniquement{% endif %}.</p>
+    </div>
+    <div class="actions">
+        <a href="?jour={{ veille|date:'Y-m-d' }}" class="btn"><i class="fas fa-chevron-left"></i> Veille</a>
+        {% if not est_soiree_actuelle %}
+        <a href="?jour={{ lendemain|date:'Y-m-d' }}" class="btn">Lendemain <i class="fas fa-chevron-right"></i></a>
+        <a href="{% url 'ventes' %}" class="btn btn-or">Ce soir</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="indicateurs">
+    <div class="indicateur">
+        <div><div class="libelle">Chiffre d'affaires</div><div class="valeur">{{ chiffre_affaires|fcfa }}</div><div class="note">commandes soldées</div></div>
+        <div class="icone icone-or"><i class="fas fa-chart-line"></i></div>
+    </div>
+    <div class="indicateur">
+        <div><div class="libelle">Encaissé</div><div class="valeur">{{ total_encaisse|fcfa }}</div></div>
+        <div class="icone icone-vert"><i class="fas fa-cash-register"></i></div>
+    </div>
+    <div class="indicateur">
+        <div><div class="libelle">Commandes soldées</div><div class="valeur">{{ nb_payees }}</div></div>
+        <div class="icone icone-or"><i class="fas fa-receipt"></i></div>
+    </div>
+    <div class="indicateur">
+        <div><div class="libelle">Encore ouvertes</div><div class="valeur">{{ ouvertes|length }}</div>{% if annulees %}<div class="note">{{ annulees|length }} annulée{{ annulees|length|pluralize }}</div>{% endif %}</div>
+        <div class="icone {% if ouvertes %}icone-orange{% else %}icone-vert{% endif %}"><i class="fas fa-hourglass-half"></i></div>
+    </div>
+</div>
+
+{% if ouvertes %}
+<div class="messages"><div class="message attention"><i class="fas fa-exclamation-circle"></i>
+    <span>{{ ouvertes|length }} commande{{ ouvertes|length|pluralize }} n'{{ ouvertes|length|pluralize:"est,ont" }} pas encore été soldée{{ ouvertes|length|pluralize }} :
+    {% for c in ouvertes %}<a href="{% url 'commande' c.pk %}">{{ c.emplacement }} {{ c.numero }}</a> ({{ c.montant_total|fcfa }}){% if not forloop.last %}, {% endif %}{% endfor %}.</span>
+</div></div>
+{% endif %}
+
+<div class="grille-ventes">
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-wallet"></i>Encaissements par mode</h2></div>
+        <table class="tableau">
+            <tbody>
+                {% for cle, libelle, montant in encaissements %}
+                <tr><td>{{ libelle }}</td><td class="nombre {% if montant %}fort{% else %}discret{% endif %}">{{ montant|fcfa }}</td></tr>
+                {% endfor %}
+                <tr><td class="fort">Total</td><td class="nombre fort">{{ total_encaisse|fcfa }}</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-user-tie"></i>Par serveur</h2></div>
+        <table class="tableau">
+            <tbody>
+                {% for s in par_serveur %}
+                <tr><td class="fort">{{ s.nom }}</td><td class="discret">{{ s.nb }} commande{{ s.nb|pluralize }}</td><td class="nombre fort">{{ s.total|fcfa }}</td></tr>
+                {% empty %}
+                <tr><td class="vide">Aucune commande soldée.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-wine-bottle"></i>Articles vendus</h2></div>
+        <div class="tableau-conteneur">
+            <table class="tableau">
+                <tbody>
+                    {% for a in articles %}
+                    <tr><td>{{ a.produit__nom }}</td><td class="nombre">{{ a.nb }}</td><td class="nombre fort">{{ a.total|fcfa }}</td></tr>
+                    {% empty %}
+                    <tr><td class="vide">Aucun article vendu.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<section class="panneau">
+    <div class="panneau-entete"><h2><i class="fas fa-list"></i>Commandes soldées</h2></div>
+    <div class="tableau-conteneur">
+        <table class="tableau">
+            <thead><tr><th>Commande</th><th>Emplacement</th><th>Serveur</th><th>Ouverte</th><th>Soldée</th><th class="nombre">Total</th><th></th></tr></thead>
+            <tbody>
+                {% for c in commandes_payees %}
+                <tr>
+                    <td class="fort">{{ c.numero }}</td>
+                    <td>{{ c.emplacement }}{% if c.client %} · {{ c.client }}{% endif %}</td>
+                    <td>{{ c.serveur.username }}</td>
+                    <td class="discret">{{ c.date_ouverture|time:"H:i" }}</td>
+                    <td class="discret">{{ c.date_cloture|time:"H:i" }}</td>
+                    <td class="nombre fort">{{ c.montant_total|fcfa }}</td>
+                    <td class="nombre"><a href="{% url 'commande' c.pk %}" class="btn btn-petit">Détail</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="vide">Aucune commande soldée pour cette soirée.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% if annulees %}
+<section class="panneau">
+    <div class="panneau-entete"><h2><i class="fas fa-ban"></i>Commandes annulées</h2></div>
+    <table class="tableau">
+        <tbody>
+            {% for c in annulees %}
+            <tr><td class="fort">{{ c.numero }}</td><td>{{ c.emplacement }}</td><td>{{ c.serveur.username }}</td><td class="discret">{{ c.motif_annulation }}</td><td class="nombre"><a href="{% url 'commande' c.pk %}" class="btn btn-petit">Détail</a></td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+{% endblock %}

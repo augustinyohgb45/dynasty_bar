@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}{{ commande.emplacement }} · {{ commande.numero }}{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>{{ commande.emplacement }} <span class="texte-discret">{{ commande.numero }}</span></h1>
+        <p class="sous-titre">
+            Ouverte à {{ commande.date_ouverture|time:"H:i" }} par {{ commande.serveur.username }}{% if commande.client %} · client : {{ commande.client }}{% endif %}
+            {% if not commande.est_ouverte %} · <span class="badge {% if commande.statut == 'payee' %}badge-ok{% else %}badge-rupture{% endif %}">{{ commande.get_statut_display }}</span>{% endif %}
+        </p>
+    </div>
+    <div class="actions">
+        {% if commande.est_ouverte %}<a href="#addition" class="btn btn-or lien-addition"><i class="fas fa-receipt"></i> Addition · {{ total|fcfa }}</a>{% endif %}
+        <a href="{% url 'ticket' commande.pk %}" class="btn" target="_blank" rel="noopener"><i class="fas fa-receipt"></i> Ticket</a>
+        <a href="{% url 'tables' %}" class="btn"><i class="fas fa-th-large"></i> Tables</a>
+    </div>
+</div>
+
+<div class="grille-caisse">
+    {% if commande.est_ouverte %}
+    <section class="panneau" id="catalogue">
+        <div class="panneau-entete">
+            <div class="recherche">
+                <input type="search" placeholder="Rechercher…" aria-label="Rechercher un produit" id="recherche-produit">
+                <label class="quantite-multiple">Quantité
+                    <input type="number" id="quantite-ajout" value="1" min="1" max="99">
+                </label>
+            </div>
+            <div class="filtres" role="group" aria-label="Catégories">
+                <button type="button" class="filtre actif" data-categorie="">Tout</button>
+                {% for categorie in categories %}
+                <button type="button" class="filtre" data-categorie="{{ categorie.id }}">{{ categorie.nom }}</button>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="grille-produits">
+            {% for produit in produits %}
+            <form method="post" action="{% url 'ajouter' commande.pk %}" data-categorie="{{ produit.categorie_id }}" data-nom="{{ produit.nom|lower }}">
+                {% csrf_token %}
+                <input type="hidden" name="produit" value="{{ produit.pk }}">
+                <input type="hidden" name="quantite" value="1">
+                <button type="submit" class="bouton-produit"{% if produit.stock <= 0 %} disabled title="Rupture de stock"{% endif %}>
+                    <span class="nom-produit">{{ produit.nom }}</span>
+                    <span class="prix-produit">{{ produit.prix_vente|fcfa }}</span>
+                    <span class="stock-produit{% if produit.stock <= 0 %} negatif{% endif %}">stock {{ produit.stock }}</span>
+                </button>
+            </form>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="panneau ticket-panneau" id="addition">
+        <div class="panneau-entete"><h2><i class="fas fa-receipt"></i>Addition</h2></div>
+        <div class="tableau-conteneur">
+            <table class="tableau">
+                <tbody>
+                    {% for ligne in lignes %}
+                    <tr>
+                        <td><div class="fort">{{ ligne.quantite }} × {{ ligne.produit }}</div><div class="discret">{{ ligne.prix_unitaire|fcfa }}</div></td>
+                        <td class="nombre fort">{{ ligne.montant|fcfa }}</td>
+                        {% if user.is_superuser and commande.est_ouverte %}
+                        <td class="nombre">
+                            <form method="post" action="{% url 'retirer' ligne.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-petit" title="Retirer un article" aria-label="Retirer un {{ ligne.produit }}"><i class="fas fa-minus"></i></button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td class="vide">Aucun article. Touchez un produit pour l'ajouter.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="totaux">
+            <div class="ligne-total grand"><span>Total</span><span>{{ total|fcfa }}</span></div>
+            {% for paiement in paiements %}
+            <div class="ligne-total"><span>{{ paiement.get_mode_display }}{% if paiement.reference %} · {{ paiement.reference }}{% endif %}</span><span>− {{ paiement.montant|fcfa }}</span></div>
+            {% endfor %}
+            {% if total_paye %}
+            <div class="ligne-total grand {% if reste %}negatif{% else %}positif{% endif %}"><span>Reste à payer</span><span>{{ reste|fcfa }}</span></div>
+            {% endif %}
+        </div>
+
+        {% if commande.est_ouverte and total %}
+        <form method="post" action="{% url 'payer' commande.pk %}" class="panneau-corps formulaire-paiement" id="formulaire-paiement" data-reste="{{ reste }}">
+            {% csrf_token %}
+            <div class="modes-paiement" role="radiogroup" aria-label="Mode de paiement">
+                {% for cle, libelle in modes %}
+                <label class="mode-paiement">
+                    <input type="radio" name="mode" value="{{ cle }}"{% if forloop.first %} checked{% endif %} data-reference="{% if cle in modes_avec_reference %}oui{% endif %}">
+                    <span>{{ libelle }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="champ">
+                <label for="montant">Montant reçu (FCFA)</label>
+                <input type="number" name="montant" id="montant" value="{{ reste }}" min="1" inputmode="numeric">
+            </div>
+            <div class="montants-rapides" id="montants-rapides">
+                <button type="button" class="filtre" data-montant="{{ reste }}">Le compte</button>
+                {% for billet in billets %}
+                <button type="button" class="filtre" data-montant="{{ billet }}">{{ billet|fcfa }}</button>
+                {% endfor %}
+            </div>
+            <div class="champ" id="champ-reference" hidden>
+                <label for="reference">Référence de la transaction</label>
+                <input type="text" name="reference" id="reference" maxlength="60" placeholder="Ex. : ID de transaction MoMo">
+            </div>
+            <p class="monnaie" id="monnaie" hidden></p>
+            <button type="submit" class="btn btn-or btn-bloc"><i class="fas fa-cash-register"></i> Encaisser</button>
+        </form>
+        {% endif %}
+
+        {% if user.is_superuser and commande.est_ouverte and not paiements %}
+        <details class="panneau-corps annulation">
+            <summary>Annuler la commande</summary>
+            <form method="post" action="{% url 'annuler' commande.pk %}">
+                {% csrf_token %}
+                <div class="champ">
+                    <label for="motif">Motif</label>
+                    <input type="text" name="motif" id="motif" required maxlength="255" placeholder="Ex. : client parti, erreur de table…">
+                </div>
+                <button type="submit" class="btn btn-bloc"><i class="fas fa-ban"></i> Annuler et remettre en stock</button>
+            </form>
+        </details>
+        {% endif %}
+        {% if commande.statut == 'annulee' %}
+        <div class="panneau-corps texte-discret">Motif d'annulation : {{ commande.motif_annulation }}</div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    // Catalogue : filtre par catégorie et recherche
+    var recherche = document.getElementById('recherche-produit');
+    var produits = document.querySelectorAll('.grille-produits form');
+    var categorie = '';
+    function filtrer() {
+      var texte = recherche ? recherche.value.trim().toLowerCase() : '';
+      produits.forEach(function (f) {
+        f.hidden = (categorie && f.dataset.categorie !== categorie) || (texte && f.dataset.nom.indexOf(texte) === -1);
+      });
+    }
+    if (recherche) { recherche.addEventListener('input', filtrer); }
+    document.querySelectorAll('[data-categorie].filtre').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('[data-categorie].filtre').forEach(function (a) { a.classList.remove('actif'); });
+        b.classList.add('actif');
+        categorie = b.dataset.categorie;
+        filtrer();
+      });
+    });
+
+    // Quantité choisie appliquée au produit touché, puis remise à 1
+    var quantite = document.getElementById('quantite-ajout');
+    produits.forEach(function (f) {
+      f.addEventListener('submit', function () {
+        f.querySelector('[name=quantite]').value = Math.max(1, parseInt(quantite.value, 10) || 1);
+      });
+    });
+
+    // Paiement : référence pour le mobile money et la carte, monnaie à rendre pour les espèces
+    var formulaire = document.getElementById('formulaire-paiement');
+    if (!formulaire) { return; }
+    var reste = parseInt(formulaire.dataset.reste, 10);
+    var montant = document.getElementById('montant');
+    var champReference = document.getElementById('champ-reference');
+    var monnaie = document.getElementById('monnaie');
+    function format(n) { return n.toLocaleString('fr-FR') + ' FCFA'; }
+    function majPaiement() {
+      var mode = formulaire.querySelector('[name=mode]:checked');
+      var avecReference = mode.dataset.reference === 'oui';
+      champReference.hidden = !avecReference;
+      document.getElementById('montants-rapides').hidden = avecReference;
+      if (avecReference && parseInt(montant.value, 10) > reste) { montant.value = reste; }
+      var rendu = (parseInt(montant.value, 10) || 0) - reste;
+      monnaie.hidden = avecReference || rendu <= 0;
+      monnaie.textContent = 'Monnaie à rendre : ' + format(rendu);
+    }
+    formulaire.querySelectorAll('[name=mode]').forEach(function (r) { r.addEventListener('change', majPaiement); });
+    montant.addEventListener('input', majPaiement);
+    formulaire.querySelectorAll('[data-montant]').forEach(function (b) {
+      b.addEventListener('click', function () { montant.value = b.dataset.montant; majPaiement(); });
+    });
+    majPaiement();
+  })();
+</script>
+{% endblock %}

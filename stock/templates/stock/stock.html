@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}État du stock{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>État du stock</h1>
+        <p class="sous-titre">{{ nb_produits }} produit{{ nb_produits|pluralize }} en vente · stock calculé à partir des mouvements.</p>
+    </div>
+    <div class="actions">
+        <a href="{% url 'mouvements' %}" class="btn btn-or"><i class="fas fa-exchange-alt"></i> Saisir un mouvement</a>
+        {% if user.is_superuser %}
+        <a href="{% url 'produit_nouveau' %}" class="btn"><i class="fas fa-plus"></i> Nouveau produit</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="indicateurs">
+    <div class="indicateur">
+        <div>
+            <div class="libelle">Valeur du stock (vente)</div>
+            <div class="valeur">{{ valeur_vente|fcfa }}</div>
+        </div>
+        <div class="icone icone-or"><i class="fas fa-wine-bottle"></i></div>
+    </div>
+    <div class="indicateur">
+        <div>
+            <div class="libelle">Valeur du stock (achat)</div>
+            <div class="valeur">{{ valeur_achat|fcfa }}</div>
+            {% if nb_sans_prix_achat %}<div class="note">{{ nb_sans_prix_achat }} produit{{ nb_sans_prix_achat|pluralize }} sans prix d'achat</div>{% endif %}
+        </div>
+        <div class="icone icone-vert"><i class="fas fa-coins"></i></div>
+    </div>
+    <div class="indicateur">
+        <div>
+            <div class="libelle">Stock bas</div>
+            <div class="valeur">{{ nb_alertes }}</div>
+        </div>
+        <div class="icone icone-orange"><i class="fas fa-exclamation-triangle"></i></div>
+    </div>
+    <div class="indicateur">
+        <div>
+            <div class="libelle">En rupture</div>
+            <div class="valeur">{{ nb_ruptures }}</div>
+        </div>
+        <div class="icone icone-rouge"><i class="fas fa-times-circle"></i></div>
+    </div>
+</div>
+
+<section class="panneau">
+    <div class="panneau-entete">
+        <form method="get" class="recherche">
+            <select name="categorie" aria-label="Catégorie" onchange="this.form.submit()">
+                <option value="">Toutes les catégories</option>
+                {% for categorie in categories %}
+                <option value="{{ categorie.id }}"{% if categorie_choisie == categorie.id|stringformat:"s" %} selected{% endif %}>{{ categorie.nom }}</option>
+                {% endfor %}
+            </select>
+            <input type="search" placeholder="Rechercher un produit…" aria-label="Rechercher" data-recherche>
+        </form>
+        <div class="filtres" role="group" aria-label="Filtrer par état">
+            <button type="button" class="filtre actif" data-filtre="">Tous</button>
+            <button type="button" class="filtre" data-filtre="ok">OK</button>
+            <button type="button" class="filtre" data-filtre="alerte">Stock bas</button>
+            <button type="button" class="filtre" data-filtre="rupture">Rupture</button>
+        </div>
+    </div>
+    <div class="tableau-conteneur">
+        <table class="tableau" data-filtrable>
+            <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th>Catégorie</th>
+                    <th class="nombre">Prix de vente</th>
+                    <th class="nombre">Prix d'achat</th>
+                    <th class="nombre">Seuil</th>
+                    <th class="nombre">Stock</th>
+                    <th class="nombre">Valeur</th>
+                    <th>État</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for produit in produits %}
+                <tr data-etat="{{ produit.etat_stock }}">
+                    <td><div class="fort">{{ produit.nom }}</div><div class="discret">{{ produit.code }}</div></td>
+                    <td>{{ produit.categorie }}</td>
+                    <td class="nombre">{{ produit.prix_vente|fcfa }}</td>
+                    <td class="nombre">{{ produit.prix_achat|fcfa }}</td>
+                    <td class="nombre">{{ produit.seuil_alerte|default:"—" }}</td>
+                    <td class="nombre fort">{{ produit.stock }}</td>
+                    <td class="nombre">{{ produit.valeur|fcfa }}</td>
+                    <td><span class="badge badge-{{ produit.etat_stock }}">{{ produit.libelle_etat }}</span></td>
+                    <td class="nombre">
+                        <a href="{% url 'mouvements' %}?produit={{ produit.id }}&amp;type=entree" class="btn btn-petit" title="Réception"><i class="fas fa-truck-loading"></i></a>
+                        {% if user.is_superuser %}
+                        <a href="{% url 'produit_modifier' produit.id %}" class="btn btn-petit" title="Modifier"><i class="fas fa-pen"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="vide">Aucun produit.{% if user.is_superuser %} <a href="{% url 'importer' %}">Importer le catalogue</a>{% endif %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Importer le catalogue{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Importer le catalogue</h1>
+        <p class="sous-titre">Depuis le classeur Excel de gestion de stock (feuilles « Catalogue » et « Stock_Reel »).</p>
+    </div>
+    <a href="{% url 'stock' %}" class="btn"><i class="fas fa-arrow-left"></i> Retour au stock</a>
+</div>
+
+<div class="grille-2">
+    <div>
+        <section class="panneau">
+            <div class="panneau-corps">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {% include 'includes/champ.html' with champ=form.fichier %}
+                    {% include 'includes/interrupteur.html' with champ=form.simulation %}
+                    <button type="submit" class="btn btn-or btn-bloc"><i class="fas fa-file-import"></i> Importer</button>
+                </form>
+            </div>
+        </section>
+        <section class="panneau">
+            <div class="panneau-entete"><h2><i class="fas fa-info-circle"></i>Ce que fait l'import</h2></div>
+            <div class="panneau-corps">
+                <ul class="liste-compacte">
+                    <li>Un produit déjà présent (même code) est mis à jour, sinon il est créé.</li>
+                    <li>Les catégories sont harmonisées ; les alcools forts classés « Liqueur » sont répartis en Whisky, Cognac, Gin, Vodka, Tequila, Rhum…</li>
+                    <li>Un prix d'achat inférieur à 10 % du prix de vente est écarté comme erreur de saisie.</li>
+                    <li>Le stock initial n'est repris que pour les produits sans aucun mouvement.</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+
+    {% if rapport %}
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-clipboard-check"></i>Rapport d'import</h2></div>
+        <div class="panneau-corps">
+            <p><strong>{{ rapport.crees|length }}</strong> créé{{ rapport.crees|length|pluralize }} · <strong>{{ rapport.mis_a_jour|length }}</strong> mis à jour
+                · <strong>{{ rapport.stocks_initiaux|length }}</strong> stock{{ rapport.stocks_initiaux|length|pluralize }} initia{{ rapport.stocks_initiaux|length|pluralize:"l,ux" }}</p>
+            {% for produit, quantite in rapport.stocks_initiaux %}
+            <div class="texte-discret">Stock initial : {{ produit }} = {{ quantite }}</div>
+            {% endfor %}
+            {% if rapport.avertissements %}
+            <h2 class="titre-section negatif">À vérifier</h2>
+            <ul class="liste-compacte">{% for avertissement in rapport.avertissements %}<li>{{ avertissement }}</li>{% endfor %}</ul>
+            {% endif %}
+            <h2 class="titre-section">Données manquantes</h2>
+            <p class="texte-discret">{{ rapport.sans_prix_achat|length }} produit{{ rapport.sans_prix_achat|length|pluralize }} sans prix d'achat (marge et valeur d'achat incalculables) : {{ rapport.sans_prix_achat|join:", " }}</p>
+            <p class="texte-discret">{{ rapport.sans_seuil|length }} produit{{ rapport.sans_seuil|length|pluralize }} sans seuil d'alerte.</p>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if creation %}Nouveau produit{% else %}Modifier {{ produit }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>{% if creation %}Nouveau produit{% else %}{{ produit }}{% endif %}</h1>
+        <p class="sous-titre">{% if creation %}Ajouter un produit au catalogue.{% else %}Code {{ produit.code }} · stock actuel : {{ produit.stock_actuel }}{% endif %}</p>
+    </div>
+    <a href="{% url 'stock' %}" class="btn"><i class="fas fa-arrow-left"></i> Retour au stock</a>
+</div>
+
+<section class="panneau etroit">
+    <div class="panneau-corps">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="grille-form">
+                {% include 'includes/champ.html' with champ=form.code %}
+                {% include 'includes/champ.html' with champ=form.nom %}
+            </div>
+            <div class="grille-form">
+                {% include 'includes/champ.html' with champ=form.categorie %}
+                {% include 'includes/champ.html' with champ=form.nouvelle_categorie %}
+            </div>
+            <div class="grille-form">
+                {% include 'includes/champ.html' with champ=form.prix_achat %}
+                {% include 'includes/champ.html' with champ=form.prix_vente %}
+                {% include 'includes/champ.html' with champ=form.seuil_alerte %}
+            </div>
+            {% include 'includes/interrupteur.html' with champ=form.actif %}
+            <div class="pied-formulaire">
+                <a href="{% url 'stock' %}" class="btn">Annuler</a>
+                <button type="submit" class="btn btn-or"><i class="fas fa-save"></i> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

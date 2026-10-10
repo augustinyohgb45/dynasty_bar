@@ -1,0 +1,19 @@
+# Environnement virtuel
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Base de données locale
+db.sqlite3
+
+# Fichiers statiques collectés
+staticfiles/
+
+# Secrets
+.env
+
+# Réglages locaux de Claude Code
+.claude/

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}Mouvements de stock{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Mouvements de stock</h1>
+        <p class="sous-titre">Réceptions, ventes{% if user.is_superuser %}, casses, offerts et ajustements d'inventaire{% endif %}.</p>
+    </div>
+    <a href="{% url 'stock' %}" class="btn"><i class="fas fa-boxes"></i> Voir le stock</a>
+</div>
+
+<div class="grille-2">
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-plus-circle"></i>Nouveau mouvement</h2></div>
+        <div class="panneau-corps">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include 'includes/champ.html' with champ=form.produit %}
+                {% include 'includes/champ.html' with champ=form.type %}
+                {% include 'includes/champ.html' with champ=form.quantite %}
+                <div id="champ-prix-achat">{% include 'includes/champ.html' with champ=form.prix_achat %}</div>
+                {% include 'includes/champ.html' with champ=form.motif %}
+                <button type="submit" class="btn btn-or btn-bloc"><i class="fas fa-save"></i> Enregistrer</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete">
+            <h2><i class="fas fa-history"></i>Derniers mouvements</h2>
+            <div class="filtres" role="group" aria-label="Filtrer par type">
+                <button type="button" class="filtre actif" data-filtre="">Tous</button>
+                {% for cle, libelle in types %}
+                <button type="button" class="filtre" data-filtre="{{ cle }}">{{ libelle }}</button>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="tableau-conteneur">
+            <table class="tableau" data-filtrable>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Produit</th>
+                        <th>Type</th>
+                        <th class="nombre">Qté</th>
+                        <th class="nombre">Montant</th>
+                        <th>Par</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mouvement in mouvements %}
+                    <tr data-etat="{{ mouvement.type }}">
+                        <td class="discret">{{ mouvement.date|date:"d/m/Y H:i" }}</td>
+                        <td><div class="fort">{{ mouvement.produit }}</div>{% if mouvement.motif %}<div class="discret">{{ mouvement.motif }}</div>{% endif %}</td>
+                        <td>{{ mouvement.get_type_display }}</td>
+                        <td class="nombre {% if mouvement.quantite < 0 %}negatif{% else %}positif{% endif %}">{{ mouvement.quantite|stringformat:"+d" }}</td>
+                        <td class="nombre">{{ mouvement.montant|fcfa }}</td>
+                        <td class="discret">{{ mouvement.utilisateur.username|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="vide">Aucun mouvement enregistré.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Le prix d'achat ne concerne que les réceptions
+  (function () {
+    var type = document.getElementById('{{ form.type.id_for_label }}');
+    var bloc = document.getElementById('champ-prix-achat');
+    function afficher() { bloc.hidden = type.value !== 'entree'; }
+    type.addEventListener('change', afficher);
+    afficher();
+  })();
+</script>
+{% endblock %}

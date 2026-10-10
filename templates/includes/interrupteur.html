@@ -1,0 +1,5 @@
+<label class="interrupteur" for="{{ champ.id_for_label }}">
+    <input type="checkbox" id="{{ champ.id_for_label }}" name="{{ champ.html_name }}"{% if champ.value %} checked{% endif %}>
+    {{ champ.label }}
+</label>
+{% for erreur in champ.errors %}<div class="erreur-champ">{{ erreur }}</div>{% endfor %}

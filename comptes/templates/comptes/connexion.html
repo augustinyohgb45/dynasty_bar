@@ -1,0 +1,38 @@
+{% load static %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connexion · Dynasty Night Club</title>
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/dynasty.css' %}" rel="stylesheet">
+</head>
+<body>
+<div class="page-connexion">
+    <div class="carte-connexion">
+        <div class="marque">
+            <span class="logo">D</span>
+            <span class="nom">DYNASTY</span>
+            <span class="sous-nom">Night Club</span>
+        </div>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% if form.errors %}
+            <div class="messages"><div class="message erreur"><i class="fas fa-times-circle"></i><span>Nom d'utilisateur ou mot de passe incorrect.</span></div></div>
+            {% endif %}
+            <div class="champ">
+                <label for="id_username">Nom d'utilisateur</label>
+                <input type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" autocomplete="username" autofocus required>
+            </div>
+            <div class="champ">
+                <label for="id_password">Mot de passe</label>
+                <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn btn-or btn-bloc"><i class="fas fa-sign-in-alt"></i> Se connecter</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

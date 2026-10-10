@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}Journal d'audit{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Journal d'audit</h1>
+        <p class="sous-titre">Toutes les actions du personnel : commandes, encaissements, retraits, annulations, stock, catalogue et connexions.</p>
+    </div>
+    <a href="?{{ parametres }}{% if parametres %}&amp;{% endif %}export=csv" class="btn"><i class="fas fa-file-csv"></i> Exporter (Excel)</a>
+</div>
+
+<div class="indicateurs">
+    <div class="indicateur">
+        <div><div class="libelle">Actions aujourd'hui</div><div class="valeur">{{ nb_actions_jour }}</div></div>
+        <div class="icone icone-or"><i class="fas fa-list-ul"></i></div>
+    </div>
+    <div class="indicateur">
+        <div><div class="libelle">Encaissé aujourd'hui</div><div class="valeur">{{ encaisse_jour|fcfa }}</div></div>
+        <div class="icone icone-vert"><i class="fas fa-cash-register"></i></div>
+    </div>
+    <a class="indicateur lien-indicateur" href="?periode=jour&amp;sensibles=1">
+        <div><div class="libelle">Actions sensibles aujourd'hui</div><div class="valeur">{{ nb_sensibles_jour }}</div><div class="note">retraits, annulations, pertes, inventaires…</div></div>
+        <div class="icone {% if nb_sensibles_jour %}icone-rouge{% else %}icone-vert{% endif %}"><i class="fas fa-user-secret"></i></div>
+    </a>
+    <a class="indicateur lien-indicateur" href="?periode=7j&amp;action=echec_connexion">
+        <div><div class="libelle">Échecs de connexion (7 j)</div><div class="valeur">{{ nb_echecs_7j }}</div></div>
+        <div class="icone {% if nb_echecs_7j %}icone-orange{% else %}icone-vert{% endif %}"><i class="fas fa-user-lock"></i></div>
+    </a>
+</div>
+
+<section class="panneau">
+    <div class="panneau-entete">
+        <form method="get" class="recherche filtres-journal">
+            <select name="periode" aria-label="Période" onchange="this.form.submit()">
+                {% for cle, libelle in periodes %}<option value="{{ cle }}"{% if filtres.periode == cle %} selected{% endif %}>{{ libelle }}</option>{% endfor %}
+            </select>
+            <select name="utilisateur" aria-label="Utilisateur" onchange="this.form.submit()">
+                <option value="">Tout le personnel</option>
+                {% for nom in utilisateurs %}<option value="{{ nom }}"{% if filtres.utilisateur == nom %} selected{% endif %}>{{ nom }}</option>{% endfor %}
+                <option value="systeme"{% if filtres.utilisateur == 'systeme' %} selected{% endif %}>Système / anonyme</option>
+            </select>
+            <select name="action" aria-label="Action" onchange="this.form.submit()">
+                <option value="">Toutes les actions</option>
+                {% for cle, libelle in actions %}<option value="{{ cle }}"{% if filtres.action == cle %} selected{% endif %}>{{ libelle }}</option>{% endfor %}
+            </select>
+            <select name="type_objet" aria-label="Élément" onchange="this.form.submit()">
+                <option value="">Tous les éléments</option>
+                {% for type in types_objet %}<option value="{{ type }}"{% if filtres.type_objet == type %} selected{% endif %}>{{ type }}</option>{% endfor %}
+            </select>
+            <input type="search" name="q" value="{{ filtres.q }}" placeholder="Table, produit, référence…" aria-label="Rechercher">
+            <label class="interrupteur interrupteur-compact">
+                <input type="checkbox" name="sensibles" value="1"{% if filtres.sensibles %} checked{% endif %} onchange="this.form.submit()">
+                Sensibles seulement
+            </label>
+            <button type="submit" class="btn btn-petit" title="Filtrer" aria-label="Filtrer"><i class="fas fa-search"></i></button>
+            <a href="{% url 'journal' %}" class="btn btn-petit" title="Réinitialiser" aria-label="Réinitialiser"><i class="fas fa-undo"></i></a>
+        </form>
+    </div>
+
+    <div class="panneau-corps texte-discret">
+        {{ page_journal.paginator.count }} entrée{{ page_journal.paginator.count|pluralize }}{% if page_journal.paginator.num_pages > 1 %} · page {{ page_journal.number }} sur {{ page_journal.paginator.num_pages }}{% endif %}
+    </div>
+    <div class="tableau-conteneur">
+        <table class="tableau">
+            <thead>
+                <tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Élément</th><th>Détails</th><th class="nombre">Montant</th><th>Appareil</th></tr>
+            </thead>
+            <tbody>
+                {% for e in page_journal %}
+                <tr{% if e.est_sensible %} class="ligne-sensible"{% endif %}>
+                    <td class="discret" style="white-space:nowrap">{{ e.date|date:"d/m/Y" }}<br>{{ e.date|date:"H:i:s" }}</td>
+                    <td class="fort">{{ e.nom_utilisateur|default:"Système" }}</td>
+                    <td><span class="badge badge-action-{{ e.action }}{% if e.est_sensible %} badge-rupture{% endif %}">{{ e.get_action_display }}</span></td>
+                    <td><div class="fort">{{ e.objet|default:"—" }}</div><div class="discret">{{ e.type_objet }}</div></td>
+                    <td class="details-journal">{{ e.details|linebreaksbr }}</td>
+                    <td class="nombre">{% if e.montant is not None %}{{ e.montant|fcfa }}{% endif %}</td>
+                    <td class="discret">{{ e.adresse_ip|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="vide">Aucune entrée pour ces filtres.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_journal.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Pages du journal">
+        {% if page_journal.has_previous %}<a class="btn btn-petit" href="?{{ parametres }}&amp;page={{ page_journal.previous_page_number }}"><i class="fas fa-chevron-left"></i> Précédent</a>{% endif %}
+        <span class="texte-discret">Page {{ page_journal.number }} / {{ page_journal.paginator.num_pages }}</span>
+        {% if page_journal.has_next %}<a class="btn btn-petit" href="?{{ parametres }}&amp;page={{ page_journal.next_page_number }}">Suivant <i class="fas fa-chevron-right"></i></a>{% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

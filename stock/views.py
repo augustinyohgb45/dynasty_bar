@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
+from audit.journal import fcfa, journaliser
+from audit.models import JournalAudit
 from comptes.decorators import gerant_requis
 
 from .forms import ImportForm, MouvementForm, ProduitForm
@@ -54,6 +56,7 @@ def mouvements(request):
         with transaction.atomic():
             if form.is_valid():
                 mouvement = form.creer_mouvement()
+                _journaliser_mouvement(mouvement)
                 messages.success(request, f"{mouvement.get_type_display()} enregistrée : {mouvement.produit} "
                                           f"({mouvement.quantite:+d}).")
                 return redirect('mouvements')
@@ -71,6 +74,25 @@ def mouvements(request):
         'types': MouvementStock.TYPES,
     }
     return render(request, 'stock/mouvements.html', context)
+
+
+ACTIONS_MOUVEMENT = {
+    MouvementStock.ENTREE: JournalAudit.RECEPTION,
+    MouvementStock.CASSE: JournalAudit.PERTE,
+    MouvementStock.OFFERT: JournalAudit.PERTE,
+    MouvementStock.INVENTAIRE: JournalAudit.INVENTAIRE,
+}
+
+
+def _journaliser_mouvement(mouvement):
+    details = [f"{mouvement.get_type_display()} : {mouvement.quantite:+d} × {mouvement.produit}"]
+    if mouvement.prix_unitaire is not None:
+        details.append(f"Prix unitaire : {fcfa(mouvement.prix_unitaire)}")
+    if mouvement.motif:
+        details.append(f"Motif : {mouvement.motif}")
+    journaliser(ACTIONS_MOUVEMENT.get(mouvement.type, JournalAudit.MODIFICATION), objet=mouvement.produit,
+                type_objet="Stock", details="\n".join(details), montant=mouvement.montant,
+                utilisateur=mouvement.utilisateur)
 
 
 @gerant_requis
@@ -114,8 +136,11 @@ def importer(request):
                 messages.info(request, f"Simulation : {rapport.nb_produits} produits seraient importés. "
                                        "Rien n'a été enregistré.")
             else:
-                messages.success(request, f"{rapport.nb_produits} produits importés ({len(rapport.crees)} créés, "
-                                          f"{len(rapport.mis_a_jour)} mis à jour).")
+                resume = (f"{rapport.nb_produits} produits importés ({len(rapport.crees)} créés, "
+                          f"{len(rapport.mis_a_jour)} mis à jour).")
+                journaliser(JournalAudit.IMPORT, objet=fichier.name, type_objet="Catalogue",
+                            details="\n".join([resume, *rapport.avertissements]))
+                messages.success(request, resume)
         finally:
             os.unlink(temporaire.name)
     return render(request, 'stock/importer.html', {'form': form, 'rapport': rapport})

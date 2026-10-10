@@ -203,7 +203,7 @@ table.tableau { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .champ label { display: block; font-size: .8rem; font-weight: 600; color: var(--texte-2); margin-bottom: 6px; }
 .champ .requis { color: var(--or); }
 
-input[type=text], input[type=number], input[type=password], input[type=search], select {
+input[type=text], input[type=number], input[type=password], input[type=search], input[type=date], select {
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
@@ -342,3 +342,44 @@ input[type=file] { color: var(--texte-2); font: inherit; }
 }
 .lien-addition { display: none; }
 @media (max-width: 760px) { .lien-addition { display: inline-flex; } }
+
+/* ---------- Journal d'audit ---------- */
+.lien-indicateur { color: inherit; }
+.lien-indicateur:hover { border-color: var(--or-fonce); color: inherit; }
+.filtres-journal select, .filtres-journal input[type=search] { min-width: 150px; }
+.interrupteur-compact { margin: 0; font-size: .82rem; color: var(--texte-2); }
+.details-journal { font-size: .82rem; color: var(--texte-2); min-width: 220px; }
+.ligne-sensible td:first-child { box-shadow: inset 3px 0 0 var(--rouge); }
+.badge { white-space: nowrap; }
+[class*="badge-action-"] { background: var(--surface-2); color: var(--texte-2); }
+.badge-action-paiement { background: rgba(62, 207, 142, .14); color: var(--vert); }
+.badge-action-ajout, .badge-action-ouverture { background: rgba(212, 175, 55, .14); color: var(--or); }
+.badge-action-reception, .badge-action-achat, .badge-action-creation { background: rgba(106, 165, 255, .14); color: var(--bleu); }
+.pagination { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 14px 20px; }
+.badge.badge-rupture { background: rgba(255, 93, 93, .16); color: var(--rouge); }
+
+/* ---------- Gérance ---------- */
+.periode-tableau { margin: -8px 0 20px; }
+a.filtre { display: inline-block; }
+a.filtre.actif { color: #1a1406; }
+.hauteur-limitee { max-height: 380px; overflow-y: auto; }
+.barres { display: grid; gap: 8px; }
+.barre-ligne { display: grid; grid-template-columns: 90px 1fr auto; align-items: center; gap: 10px; font-size: .85rem; }
+.barre-libelle { color: var(--texte-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barre-piste { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.barre { display: block; height: 100%; min-width: 2px; border-radius: 999px; background: linear-gradient(90deg, var(--or-fonce), var(--or-clair)); }
+.barre-valeur { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.puce-categorie { display: inline-block; margin: 0 8px 6px 0; padding: 2px 10px; border-radius: 999px; background: var(--surface-2); }
+
+.ligne-achat { border: 1px solid var(--bordure); border-radius: 10px; padding: 14px 14px 0; margin-bottom: 12px; background: var(--fond-2); }
+.grille-ligne-achat { display: grid; grid-template-columns: minmax(200px, 2fr) minmax(90px, 1fr) minmax(130px, 1fr) auto; gap: 0 12px; align-items: start; }
+.grille-ligne-achat .retirer-ligne { margin-top: 26px; }
+.nouvelle-boisson { border-top: 1px dashed var(--bordure); padding-top: 12px; }
+.nouvelle-boisson .champ label { color: var(--or); }
+
+@media (max-width: 760px) {
+    .grille-ligne-achat { grid-template-columns: 1fr 1fr; }
+    .grille-ligne-achat .col-produit { grid-column: 1 / -1; }
+    .grille-ligne-achat .retirer-ligne { margin: 0 0 14px; }
+}
+.recherche .interrupteur input { min-width: 0; width: 40px; padding: 0; }

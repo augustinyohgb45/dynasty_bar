@@ -120,7 +120,7 @@ class PaiementTests(BaseCaisse):
         self.ajouter(commande, self.moet, 2)
         self.payer(commande, Paiement.ESPECES, 80000)
         with self.assertRaises(services.ErreurCaisse):
-            services.retirer_produit(commande.lignes.get())
+            services.retirer_produit(commande.lignes.get(), self.gerant)
 
 
 class AnnulationTests(BaseCaisse):
@@ -139,7 +139,7 @@ class AnnulationTests(BaseCaisse):
         self.ajouter(commande, self.moet)
         self.payer(commande, Paiement.ESPECES, 10000)
         with self.assertRaises(services.ErreurCaisse):
-            services.annuler(commande, 'erreur')
+            services.annuler(commande, 'erreur', self.gerant)
 
 
 @override_settings(HEURE_DEBUT_SOIREE=12)

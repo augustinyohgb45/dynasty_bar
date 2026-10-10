@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
+from audit.journal import journaliser
+from audit.models import JournalAudit
 from stock.importation import ErreurImport, importer_catalogue
 
 
@@ -19,6 +21,9 @@ class Command(BaseCommand):
 
         if simulation:
             self.stdout.write(self.style.WARNING("Simulation : rien n'a été enregistré."))
+        else:
+            journaliser(JournalAudit.IMPORT, objet=fichier, type_objet="Catalogue",
+                        details=f"{rapport.nb_produits} produits importés en ligne de commande.")
         self.stdout.write(self.style.SUCCESS(
             f"{rapport.nb_produits} produits importés ({len(rapport.crees)} créés, "
             f"{len(rapport.mis_a_jour)} mis à jour)."))

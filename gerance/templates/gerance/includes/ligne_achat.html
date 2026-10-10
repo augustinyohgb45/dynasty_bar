@@ -1,0 +1,14 @@
+<div class="ligne-achat">
+    {% for erreur in ligne.non_field_errors %}<div class="erreur-champ">{{ erreur }}</div>{% endfor %}
+    <div class="grille-ligne-achat">
+        <div class="col-produit">{% include 'includes/champ.html' with champ=ligne.produit %}</div>
+        {% include 'includes/champ.html' with champ=ligne.quantite %}
+        {% include 'includes/champ.html' with champ=ligne.prix_unitaire %}
+        <button type="button" class="btn btn-petit retirer-ligne" title="Retirer cette ligne" aria-label="Retirer cette ligne"><i class="fas fa-trash"></i></button>
+    </div>
+    <div class="nouvelle-boisson grille-form">
+        {% include 'includes/champ.html' with champ=ligne.nouveau_nom %}
+        {% include 'includes/champ.html' with champ=ligne.nouvelle_categorie %}
+        {% include 'includes/champ.html' with champ=ligne.prix_vente %}
+    </div>
+</div>

@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from django.db import transaction
 from openpyxl import load_workbook
 
+from audit.journal import sans_suivi_automatique
+
 from .models import Categorie, MouvementStock, Produit
 
 # Ordre d'affichage des catégories (les autres viennent ensuite)
@@ -135,7 +137,7 @@ def importer_catalogue(fichier, utilisateur=None, simulation=False):
     categories = {}
     codes_vus = set()
 
-    with transaction.atomic():
+    with transaction.atomic(), sans_suivi_automatique():
         for numero, valeurs in catalogue:
             code = nettoyer_texte(valeurs['ID_Produit'])
             nom = nettoyer_texte(valeurs['Designation'])

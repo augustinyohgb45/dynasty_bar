@@ -3,6 +3,7 @@ Règles de la caisse : ajout et retrait d'articles, encaissement, annulation.
 
 Chaque article servi sort immédiatement du stock (mouvement « Vente » rattaché à la ligne).
 Retirer un article ou annuler une commande supprime la sortie correspondante.
+Toutes ces actions sont inscrites au journal d'audit.
 """
 from datetime import datetime, time, timedelta
 
@@ -11,6 +12,8 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from audit.journal import fcfa, journaliser
+from audit.models import JournalAudit
 from stock.models import MouvementStock, Produit
 
 from .models import Commande, LigneCommande, Paiement
@@ -18,6 +21,22 @@ from .models import Commande, LigneCommande, Paiement
 
 class ErreurCaisse(Exception):
     pass
+
+
+def _objet(commande):
+    return f"{commande.emplacement} {commande.numero}"
+
+
+def ouvrir_commande(table, utilisateur, client=''):
+    """Ouvre une commande, ou reprend celle déjà ouverte sur la table."""
+    if table is not None:
+        existante = Commande.objects.filter(table=table, statut=Commande.OUVERTE).first()
+        if existante is not None:
+            return existante
+    commande = Commande.objects.create(table=table, serveur=utilisateur, client=(client or '').strip()[:80])
+    journaliser(JournalAudit.OUVERTURE, objet=_objet(commande), type_objet="Commande",
+                details=f"Client : {commande.client}" if commande.client else '', utilisateur=utilisateur)
+    return commande
 
 
 def _verrouiller(commande):
@@ -40,6 +59,10 @@ def ajouter_produit(commande, produit, quantite, utilisateur):
     if stock < quantite:
         raise ErreurCaisse(f"Stock insuffisant : il reste {max(stock, 0)} × {produit}.")
 
+    journaliser(JournalAudit.AJOUT, objet=_objet(commande), type_objet="Commande",
+                details=f"{quantite} × {produit} à {fcfa(produit.prix_vente)}",
+                montant=quantite * produit.prix_vente, utilisateur=utilisateur)
+
     # Même produit au même prix : on regroupe sur une seule ligne
     ligne = commande.lignes.filter(produit=produit, prix_unitaire=produit.prix_vente).select_related('mouvement').first()
     if ligne is None:
@@ -57,13 +80,17 @@ def ajouter_produit(commande, produit, quantite, utilisateur):
 
 
 @transaction.atomic
-def retirer_produit(ligne, quantite=1):
+def retirer_produit(ligne, utilisateur, quantite=1):
     """Retire des articles d'une commande ouverte et les remet en stock."""
     commande = _verrouiller(ligne.commande)
-    ligne = LigneCommande.objects.select_related('mouvement').get(pk=ligne.pk, commande=commande)
+    ligne = LigneCommande.objects.select_related('mouvement', 'produit').get(pk=ligne.pk, commande=commande)
     quantite = min(quantite, ligne.quantite)
     if commande.total - quantite * ligne.prix_unitaire < commande.total_paye:
         raise ErreurCaisse("Impossible : le montant déjà encaissé dépasserait le total de la commande.")
+    journaliser(JournalAudit.RETRAIT, objet=_objet(commande), type_objet="Commande",
+                details=f"{quantite} × {ligne.produit} retiré(s) et remis en stock "
+                        f"(commande servie par {commande.serveur.get_username()})",
+                montant=quantite * ligne.prix_unitaire, utilisateur=utilisateur)
     ligne.quantite -= quantite
     if ligne.quantite == 0:
         if ligne.mouvement is not None:
@@ -104,21 +131,36 @@ def encaisser(commande, mode, montant, utilisateur, reference=''):
 
     paiement = Paiement.objects.create(commande=commande, mode=mode, montant=montant,
                                        reference=reference, recu_par=utilisateur)
+    details = [f"{paiement.get_mode_display()} : {fcfa(montant)}"]
+    if reference:
+        details.append(f"Référence : {reference}")
+    if monnaie:
+        details.append(f"Reçu {fcfa(montant + monnaie)}, monnaie rendue {fcfa(monnaie)}")
     if commande.reste == 0:
         commande.statut = Commande.PAYEE
         commande.date_cloture = timezone.now()
         commande.save(update_fields=['statut', 'date_cloture'])
+        details.append(f"Commande soldée (total {fcfa(commande.total)})")
+    else:
+        details.append(f"Reste à payer : {fcfa(commande.reste)}")
+    journaliser(JournalAudit.PAIEMENT, objet=_objet(commande), type_objet="Commande",
+                details="\n".join(details), montant=montant, utilisateur=utilisateur)
     return paiement, monnaie, commande
 
 
 @transaction.atomic
-def annuler(commande, motif):
+def annuler(commande, motif, utilisateur):
     """Annule une commande non encaissée et remet les articles en stock."""
     commande = _verrouiller(commande)
     if not (motif or '').strip():
         raise ErreurCaisse("Indiquez le motif de l'annulation.")
     if commande.paiements.exists():
         raise ErreurCaisse("Impossible d'annuler une commande déjà partiellement encaissée.")
+    articles = [f"{ligne.quantite} × {ligne.produit}" for ligne in commande.lignes.select_related('produit')]
+    journaliser(JournalAudit.ANNULATION, objet=_objet(commande), type_objet="Commande",
+                details=f"Motif : {motif.strip()}\nServie par {commande.serveur.get_username()}\n"
+                        f"Articles remis en stock : {', '.join(articles) or 'aucun'}",
+                montant=commande.total, utilisateur=utilisateur)
     MouvementStock.objects.filter(ligne_commande__commande=commande).delete()
     commande.statut = Commande.ANNULEE
     commande.motif_annulation = motif.strip()

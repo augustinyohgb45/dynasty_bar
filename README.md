@@ -25,9 +25,29 @@ venv\Scripts\python.exe manage.py createsuperuser   # compte du gérant
 | Rôle | Peut faire |
 |---|---|
 | Personnel | Ouvrir des tables, prendre les commandes, encaisser, imprimer les tickets, voir ses propres ventes de la soirée ; consulter le stock et saisir les réceptions |
-| Gérant (administrateur) | Tout, plus : retirer un article d'une commande, annuler une commande non encaissée, voir le bilan de tout le personnel ; casses, offerts, ajustements d'inventaire (motif obligatoire), catalogue, import Excel, tables et comptes |
+| Gérant (administrateur) | Tout, plus : tableau de bord, achats, journal d'audit, retirer un article d'une commande, annuler une commande non encaissée, voir le bilan de tout le personnel ; casses, offerts, ajustements d'inventaire (motif obligatoire), catalogue, import Excel, tables et comptes |
 
 Les comptes du personnel se créent dans « Comptes et réglages » (administration Django).
+Après connexion, le gérant arrive sur le tableau de bord et le personnel sur la caisse.
+
+## Espace gérance
+
+- **Tableau de bord** (soirée en cours, 7 jours, mois, 30 jours) : chiffre d'affaires, marge estimée,
+  boissons vendues, encaissements par mode, ventes par catégorie et par jour, boissons restantes,
+  boissons à commander, additions en cours, casses et offerts, derniers achats et dernières activités.
+- **Achats** : à chaque approvisionnement, saisir le fournisseur et les boissons achetées (quantité,
+  prix unitaire). Le stock et le prix d'achat de chaque boisson sont mis à jour. Une boisson qui
+  n'existe pas encore se crée directement depuis l'achat (nom, catégorie, prix de vente).
+
+## Journal d'audit
+
+Chaque action est enregistrée avec son auteur, l'heure et l'appareil (adresse IP) :
+ouverture de commande, ajout et retrait d'article, encaissement (mode, référence, monnaie rendue),
+annulation (motif), réception, achat, casse, offert, inventaire, import, création, modification et
+suppression de boissons, de catégories, de tables ou de comptes, connexions et échecs de connexion.
+Les actions sensibles (retraits, annulations, pertes, inventaires, suppressions) sont signalées en
+rouge et filtrables. Le journal s'exporte pour Excel et ne peut être ni modifié ni supprimé.
+
 ## Caisse
 
 - **Tables** : 8 tables en salle et 4 au carré VIP sont créées au départ ; le gérant les renomme,

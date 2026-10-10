@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Tableau de bord</h1>
+        <p class="sous-titre">Vue générale du bar depuis le {{ debut|date:"d/m/Y à H:i" }}.</p>
+    </div>
+    <div class="actions">
+        <a href="{% url 'achat_nouveau' %}" class="btn btn-or"><i class="fas fa-truck-loading"></i> Nouvel achat</a>
+        <a href="{% url 'journal' %}" class="btn"><i class="fas fa-user-secret"></i> Journal d'audit</a>
+    </div>
+</div>
+
+<div class="filtres periode-tableau" role="group" aria-label="Période">
+    {% for cle, libelle in periodes %}
+    <a href="?periode={{ cle }}" class="filtre{% if periode == cle %} actif{% endif %}">{{ libelle }}</a>
+    {% endfor %}
+</div>
+
+<div class="indicateurs">
+    <div class="indicateur">
+        <div><div class="libelle">Chiffre d'affaires</div><div class="valeur">{{ chiffre_affaires|fcfa }}</div>
+            <div class="note">{{ nb_commandes }} commande{{ nb_commandes|pluralize }} · panier moyen {{ panier_moyen|fcfa }}</div></div>
+        <div class="icone icone-or"><i class="fas fa-chart-line"></i></div>
+    </div>
+    <div class="indicateur">
+        <div><div class="libelle">Marge estimée</div><div class="valeur">{{ marge|fcfa }}</div>
+            <div class="note">{% if marge_complete %}d'après les prix d'achat{% else %}partielle : prix d'achat manquants{% endif %}</div></div>
+        <div class="icone icone-vert"><i class="fas fa-coins"></i></div>
+    </div>
+    <div class="indicateur">
+        <div><div class="libelle">Boissons vendues</div><div class="valeur">{{ nb_articles }}</div>
+            <div class="note">encaissé : {{ total_encaisse|fcfa }}</div></div>
+        <div class="icone icone-or"><i class="fas fa-glass-cheers"></i></div>
+    </div>
+    <div class="indicateur">
+        <div><div class="libelle">Achats</div><div class="valeur">{{ total_achats|fcfa }}</div>
+            <div class="note">pertes : {{ valeur_pertes|fcfa }}</div></div>
+        <div class="icone icone-orange"><i class="fas fa-truck"></i></div>
+    </div>
+</div>
+
+<div class="indicateurs">
+    <a class="indicateur lien-indicateur" href="{% url 'stock' %}">
+        <div><div class="libelle">Boissons restantes</div><div class="valeur">{{ nb_bouteilles }}</div>
+            <div class="note">valeur à la vente : {{ valeur_stock|fcfa }}</div></div>
+        <div class="icone icone-or"><i class="fas fa-wine-bottle"></i></div>
+    </a>
+    <a class="indicateur lien-indicateur" href="#a-commander">
+        <div><div class="libelle">À commander</div><div class="valeur">{{ nb_a_commander }}</div>
+            <div class="note">{{ ruptures|length }} en rupture · {{ alertes|length }} stock bas</div></div>
+        <div class="icone {% if ruptures %}icone-rouge{% else %}icone-vert{% endif %}"><i class="fas fa-exclamation-triangle"></i></div>
+    </a>
+    <a class="indicateur lien-indicateur" href="{% url 'tables' %}">
+        <div><div class="libelle">Additions en cours</div><div class="valeur">{{ nb_ouvertes }}</div>
+            <div class="note">{{ montant_ouvert|fcfa }} à encaisser</div></div>
+        <div class="icone {% if nb_ouvertes %}icone-orange{% else %}icone-vert{% endif %}"><i class="fas fa-hourglass-half"></i></div>
+    </a>
+</div>
+
+<div class="grille-ventes">
+    {% if jours %}
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-calendar-alt"></i>Chiffre d'affaires par jour</h2></div>
+        <div class="panneau-corps barres">
+            {% for j in jours %}
+            <div class="barre-ligne"><span class="barre-libelle">{{ j.libelle }}</span>
+                <span class="barre-piste"><span class="barre" style="width: {{ j.largeur }}%"></span></span>
+                <span class="barre-valeur">{{ j.total|fcfa }}</span></div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-layer-group"></i>Ventes par catégorie</h2></div>
+        <div class="panneau-corps barres">
+            {% for c in par_categorie %}
+            <div class="barre-ligne"><span class="barre-libelle">{{ c.nom }}</span>
+                <span class="barre-piste"><span class="barre" style="width: {{ c.largeur }}%"></span></span>
+                <span class="barre-valeur">{{ c.total|fcfa }}</span></div>
+            {% empty %}
+            <p class="texte-discret">Aucune vente sur la période.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-wallet"></i>Encaissements par mode</h2></div>
+        <table class="tableau">
+            <tbody>
+                {% for cle, libelle, montant in encaissements %}
+                <tr><td>{{ libelle }}</td><td class="nombre {% if montant %}fort{% else %}discret{% endif %}">{{ montant|fcfa }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<div class="grille-ventes">
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-glass-cheers"></i>Boissons vendues</h2><span class="texte-discret">{{ vendues|length }} référence{{ vendues|length|pluralize }}</span></div>
+        <div class="tableau-conteneur hauteur-limitee">
+            <table class="tableau">
+                <thead><tr><th>Boisson</th><th class="nombre">Qté</th><th class="nombre">Montant</th></tr></thead>
+                <tbody>
+                    {% for v in vendues %}
+                    <tr><td><div class="fort">{{ v.nom }}</div><div class="discret">{{ v.categorie }}</div></td><td class="nombre">{{ v.quantite }}</td><td class="nombre fort">{{ v.total|fcfa }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="vide">Aucune boisson vendue sur la période.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-wine-bottle"></i>Boissons restantes</h2><a href="{% url 'stock' %}" class="btn btn-petit">Tout le stock</a></div>
+        <div class="tableau-conteneur hauteur-limitee">
+            <table class="tableau">
+                <thead><tr><th>Boisson</th><th class="nombre">Stock</th><th>État</th></tr></thead>
+                <tbody>
+                    {% for p in restants %}
+                    <tr><td><div class="fort">{{ p.nom }}</div><div class="discret">{{ p.categorie }}</div></td><td class="nombre fort">{{ p.stock }}</td>
+                        <td><span class="badge badge-{{ p.etat_stock }}">{% if p.etat_stock == 'alerte' %}Stock bas{% else %}OK{% endif %}</span></td></tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="vide">Aucune boisson en stock. Enregistrez un achat.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if restants_categorie %}
+        <div class="panneau-corps texte-discret">
+            {% for nom, r in restants_categorie %}{% if r.quantite %}<span class="puce-categorie">{{ nom }} : {{ r.quantite }}</span>{% endif %}{% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="panneau" id="a-commander">
+        <div class="panneau-entete"><h2><i class="fas fa-shopping-cart"></i>À commander</h2><a href="{% url 'achat_nouveau' %}" class="btn btn-petit">Nouvel achat</a></div>
+        <div class="tableau-conteneur hauteur-limitee">
+            <table class="tableau">
+                <tbody>
+                    {% for p in alertes %}
+                    <tr><td class="fort">{{ p.nom }}</td><td class="nombre">{{ p.stock }} / seuil {{ p.seuil_alerte }}</td><td><span class="badge badge-alerte">Stock bas</span></td></tr>
+                    {% endfor %}
+                    {% for p in ruptures %}
+                    <tr><td class="fort">{{ p.nom }}</td><td class="nombre discret">{{ p.categorie }}</td><td><span class="badge badge-rupture">Rupture</span></td></tr>
+                    {% endfor %}
+                    {% if not alertes and not ruptures %}<tr><td class="vide">Rien à commander.</td></tr>{% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<div class="grille-ventes">
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-truck"></i>Derniers achats</h2><a href="{% url 'achats' %}" class="btn btn-petit">Tous les achats</a></div>
+        <table class="tableau">
+            <tbody>
+                {% for a in derniers_achats %}
+                <tr><td><a href="{% url 'achat_detail' a.pk %}" class="fort">{{ a.fournisseur }}</a><div class="discret">{{ a.date|date:"d/m/Y" }}{% if a.reference %} · {{ a.reference }}{% endif %}</div></td><td class="nombre fort">{{ a.total|fcfa }}</td></tr>
+                {% empty %}
+                <tr><td class="vide">Aucun achat enregistré.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-heart-broken"></i>Casses et offerts</h2></div>
+        <table class="tableau">
+            <tbody>
+                {% for m in pertes %}
+                <tr><td><div class="fort">{{ m.produit }}</div><div class="discret">{{ m.get_type_display }} · {{ m.utilisateur.username|default:"—" }} · {{ m.motif }}</div></td><td class="nombre negatif">{{ m.quantite }}</td></tr>
+                {% empty %}
+                <tr><td class="vide">Aucune perte sur la période.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-user-secret"></i>Dernières activités</h2><a href="{% url 'journal' %}" class="btn btn-petit">Journal complet</a></div>
+        <table class="tableau">
+            <tbody>
+                {% for e in activites %}
+                <tr><td><div class="fort">{{ e.nom_utilisateur|default:"Système" }} · {{ e.get_action_display|lower }}</div><div class="discret">{{ e.objet }} · {{ e.date|date:"d/m H:i" }}</div></td>
+                    <td class="nombre">{% if e.montant is not None %}{{ e.montant|fcfa }}{% endif %}</td></tr>
+                {% empty %}
+                <tr><td class="vide">Aucune activité.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

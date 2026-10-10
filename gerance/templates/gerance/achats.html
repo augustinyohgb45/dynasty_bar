@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}Achats{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Achats</h1>
+        <p class="sous-titre">Historique des achats de boissons auprès des fournisseurs.</p>
+    </div>
+    <a href="{% url 'achat_nouveau' %}" class="btn btn-or"><i class="fas fa-plus"></i> Nouvel achat</a>
+</div>
+
+<section class="panneau">
+    <div class="tableau-conteneur">
+        <table class="tableau">
+            <thead><tr><th>Date</th><th>Fournisseur</th><th>Référence</th><th>Boissons</th><th>Saisi par</th><th class="nombre">Total</th><th></th></tr></thead>
+            <tbody>
+                {% for achat in page_achats %}
+                <tr>
+                    <td class="discret">{{ achat.date|date:"d/m/Y" }}</td>
+                    <td class="fort">{{ achat.fournisseur }}</td>
+                    <td>{{ achat.reference|default:"—" }}</td>
+                    <td class="discret">{{ achat.lignes.all|length }} ligne{{ achat.lignes.all|length|pluralize }}</td>
+                    <td>{{ achat.utilisateur.username }}</td>
+                    <td class="nombre fort">{{ achat.total|fcfa }}</td>
+                    <td class="nombre"><a href="{% url 'achat_detail' achat.pk %}" class="btn btn-petit">Détail</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="vide">Aucun achat enregistré. <a href="{% url 'achat_nouveau' %}">Enregistrer le premier achat</a></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_achats.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Pages">
+        {% if page_achats.has_previous %}<a class="btn btn-petit" href="?page={{ page_achats.previous_page_number }}"><i class="fas fa-chevron-left"></i> Précédent</a>{% endif %}
+        <span class="texte-discret">Page {{ page_achats.number }} / {{ page_achats.paginator.num_pages }}</span>
+        {% if page_achats.has_next %}<a class="btn btn-petit" href="?page={{ page_achats.next_page_number }}">Suivant <i class="fas fa-chevron-right"></i></a>{% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

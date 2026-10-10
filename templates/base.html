@@ -34,6 +34,10 @@
             <li><a href="{% url 'mouvements' %}" class="{% if page == 'mouvements' %}actif{% endif %}"><i class="fas fa-exchange-alt"></i> Mouvements</a></li>
             {% if user.is_superuser %}
             <li class="titre">Gérance</li>
+            <li><a href="{% url 'tableau_de_bord' %}" class="{% if page == 'tableau_de_bord' %}actif{% endif %}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{% url 'achat_nouveau' %}" class="{% if page == 'achat_nouveau' %}actif{% endif %}"><i class="fas fa-truck-loading"></i> Nouvel achat</a></li>
+            <li><a href="{% url 'achats' %}" class="{% if page == 'achats' or page == 'achat_detail' %}actif{% endif %}"><i class="fas fa-truck"></i> Achats</a></li>
+            <li><a href="{% url 'journal' %}" class="{% if page == 'journal' %}actif{% endif %}"><i class="fas fa-user-secret"></i> Journal d'audit</a></li>
             <li><a href="{% url 'produit_nouveau' %}" class="{% if page == 'produit_nouveau' %}actif{% endif %}"><i class="fas fa-plus"></i> Nouveau produit</a></li>
             <li><a href="{% url 'importer' %}" class="{% if page == 'importer' %}actif{% endif %}"><i class="fas fa-file-import"></i> Importer le catalogue</a></li>
             <li><a href="{% url 'admin:index' %}"><i class="fas fa-users-cog"></i> Comptes et réglages</a></li>

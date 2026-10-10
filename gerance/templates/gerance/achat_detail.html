@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load stock_extras %}
+
+{% block title %}{{ achat }}{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Achat · {{ achat.fournisseur }}</h1>
+        <p class="sous-titre">Du {{ achat.date|date:"d/m/Y" }}{% if achat.reference %} · {{ achat.reference }}{% endif %} · saisi par {{ achat.utilisateur.username }} le {{ achat.date_saisie|date:"d/m/Y à H:i" }}{% if achat.note %} · {{ achat.note }}{% endif %}</p>
+    </div>
+    <div class="actions">
+        <a href="{% url 'achat_nouveau' %}" class="btn btn-or"><i class="fas fa-plus"></i> Nouvel achat</a>
+        <a href="{% url 'achats' %}" class="btn"><i class="fas fa-list"></i> Tous les achats</a>
+    </div>
+</div>
+
+<section class="panneau etroit">
+    <table class="tableau">
+        <thead><tr><th>Boisson</th><th class="nombre">Quantité</th><th class="nombre">Prix unitaire</th><th class="nombre">Montant</th></tr></thead>
+        <tbody>
+            {% for ligne in lignes %}
+            <tr><td><div class="fort">{{ ligne.produit }}</div><div class="discret">{{ ligne.produit.categorie }}</div></td>
+                <td class="nombre">{{ ligne.quantite }}</td><td class="nombre">{{ ligne.prix_unitaire|fcfa }}</td><td class="nombre fort">{{ ligne.montant|fcfa }}</td></tr>
+            {% endfor %}
+            <tr><td colspan="3" class="fort">Total</td><td class="nombre fort">{{ achat.total|fcfa }}</td></tr>
+        </tbody>
+    </table>
+</section>
+{% endblock %}

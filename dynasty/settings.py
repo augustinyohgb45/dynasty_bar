@@ -1,5 +1,6 @@
 """Configuration de l'application de gestion du Dynasty Night Club."""
 import os
+import sys
 from pathlib import Path
 
 from django.contrib.messages import constants as messages
@@ -24,6 +25,8 @@ INSTALLED_APPS = [
     'comptes',
     'stock',
     'caisse',
+    'audit',
+    'gerance',
 ]
 
 MIDDLEWARE = [
@@ -34,6 +37,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'audit.journal.AuditMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -72,7 +76,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_URL = 'connexion'
-LOGIN_REDIRECT_URL = 'tables'
+LOGIN_REDIRECT_URL = 'accueil'
 
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = os.environ.get('TIME_ZONE', 'Africa/Abidjan')
@@ -100,3 +104,7 @@ MESSAGE_TAGS = {
 # Une soirée commence à cette heure et se termine à la même heure le lendemain :
 # les ventes après minuit restent rattachées à la soirée de la veille.
 HEURE_DEBUT_SOIREE = int(os.environ.get('HEURE_DEBUT_SOIREE', 12))
+
+# Tests : hachage rapide des mots de passe (les vrais comptes gardent l'algorithme sûr par défaut)
+if 'test' in sys.argv:
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']

@@ -13,7 +13,7 @@ class ConnexionTests(TestCase):
 
     def test_connexion_puis_deconnexion(self):
         reponse = self.client.post(reverse('connexion'), {'username': 'serveur', 'password': 'motdepasse-test'})
-        self.assertRedirects(reponse, reverse('tables'))
+        self.assertRedirects(reponse, reverse('accueil'), fetch_redirect_response=False)
         self.assertRedirects(self.client.post(reverse('deconnexion')), reverse('connexion'))
         self.assertEqual(self.client.get(reverse('stock')).status_code, 302)
 

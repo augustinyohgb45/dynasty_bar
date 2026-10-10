@@ -50,12 +50,7 @@ def tables(request):
 @require_POST
 def ouvrir(request, table_id=None):
     table = get_object_or_404(Table, pk=table_id, active=True) if table_id else None
-    if table is not None:
-        existante = Commande.objects.filter(table=table, statut=Commande.OUVERTE).first()
-        if existante is not None:
-            return redirect('commande', existante.pk)
-    commande = Commande.objects.create(table=table, serveur=request.user,
-                                       client=request.POST.get('client', '').strip()[:80])
+    commande = services.ouvrir_commande(table, request.user, request.POST.get('client', ''))
     return redirect('commande', commande.pk)
 
 
@@ -96,7 +91,7 @@ def ajouter(request, commande_id):
 def retirer(request, ligne_id):
     ligne = get_object_or_404(LigneCommande.objects.select_related('commande'), pk=ligne_id)
     try:
-        services.retirer_produit(ligne, _entier(request.POST.get('quantite'), 1))
+        services.retirer_produit(ligne, request.user, _entier(request.POST.get('quantite'), 1))
     except ErreurCaisse as e:
         messages.error(request, str(e))
     return redirect('commande', ligne.commande_id)
@@ -129,7 +124,7 @@ def payer(request, commande_id):
 def annuler(request, commande_id):
     commande = get_object_or_404(Commande, pk=commande_id)
     try:
-        services.annuler(commande, request.POST.get('motif', ''))
+        services.annuler(commande, request.POST.get('motif', ''), request.user)
     except ErreurCaisse as e:
         messages.error(request, str(e))
         return redirect('commande', commande.pk)

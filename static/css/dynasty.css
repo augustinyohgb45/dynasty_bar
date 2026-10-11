@@ -430,3 +430,10 @@ a.filtre.actif { color: #1a1406; }
 .grille-sans-table { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 24px; align-items: start; }
 #commande-client { scroll-margin-top: 16px; }
 #commande-client:target { border-color: var(--or); box-shadow: 0 0 0 3px rgba(212, 175, 55, .18); }
+
+/* ---------- Commandes vides ---------- */
+.actions-ligne { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+.actions-ligne form { margin: 0; }
+.commande-vide { border-top: 1px solid var(--bordure); }
+.commande-vide p { margin-top: 0; }
+.badge-inactif { background: var(--surface-2); color: var(--texte-2); border: 1px dashed var(--bordure); }

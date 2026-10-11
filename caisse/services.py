@@ -189,6 +189,26 @@ def annuler(commande, motif, utilisateur):
     return commande
 
 
+@transaction.atomic
+def abandonner(commande, utilisateur, motif="Commande vide abandonnée"):
+    """
+    Ferme une commande ouverte par erreur ou laissée sans article. Possible pour tout le
+    personnel car rien n'a été servi ni encaissé ; une commande avec des articles doit
+    être annulée par l'admin.
+    """
+    commande = _verrouiller(commande)
+    if not commande.est_vide:
+        raise ErreurCaisse("Cette commande contient des articles ou un paiement : seul l'admin peut l'annuler.")
+    commande.statut = Commande.ANNULEE
+    commande.motif_annulation = motif
+    commande.date_cloture = timezone.now()
+    commande.save(update_fields=['statut', 'motif_annulation', 'date_cloture'])
+    journaliser(JournalAudit.ABANDON, objet=_objet(commande), type_objet="Commande",
+                details=f"{motif} (ouverte à {timezone.localtime(commande.date_ouverture):%H:%M} "
+                        f"par {commande.serveur.get_username()})", utilisateur=utilisateur)
+    return commande
+
+
 # ---------- Soirées ----------
 
 def debut_soiree(moment=None):

@@ -13,6 +13,7 @@ class JournalAudit(models.Model):
     RETRAIT = 'retrait'
     PAIEMENT = 'paiement'
     ANNULATION = 'annulation'
+    ABANDON = 'abandon'
     # Stock
     RECEPTION = 'reception'
     ACHAT = 'achat'
@@ -36,6 +37,7 @@ class JournalAudit(models.Model):
         (RETRAIT, "Retrait d'article"),
         (PAIEMENT, "Encaissement"),
         (ANNULATION, "Annulation de commande"),
+        (ABANDON, "Commande vide abandonnée"),
         (RECEPTION, "Réception de stock"),
         (ACHAT, "Achat"),
         (CLOTURE, "Clôture de soirée"),

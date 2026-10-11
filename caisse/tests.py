@@ -310,3 +310,35 @@ class CommandeClientTests(BaseCaisse):
         page = self.client.get(reverse('tables'))
         self.assertTrue(page.context['toutes_occupees'])
         self.assertContains(page, 'Toutes les tables sont occupées')
+
+
+class CommandeVideTests(BaseCaisse):
+    def test_la_caisse_peut_abandonner_une_commande_vide(self):
+        self.client.post(reverse('ouvrir_comptoir'), {'nature': 'client', 'client': 'M. Kouassi'})
+        commande = Commande.objects.get()
+        page = self.client.get(reverse('tables'))
+        self.assertContains(page, 'Vide')
+        self.assertContains(page, 'Abandonner')
+        self.assertRedirects(self.client.post(reverse('abandonner', args=[commande.pk])), reverse('tables'))
+        commande.refresh_from_db()
+        self.assertEqual(commande.statut, Commande.ANNULEE)
+        self.assertEqual(len(self.client.get(reverse('tables')).context['sans_table']), 0)
+        entree = JournalAudit.objects.get(action='abandon')
+        self.assertFalse(entree.est_sensible)
+
+    def test_commande_avec_articles_non_abandonnable_par_la_caisse(self):
+        commande = self.ouvrir()
+        self.ajouter(commande, self.moet)
+        self.client.post(reverse('abandonner', args=[commande.pk]))
+        commande.refresh_from_db()
+        self.assertEqual(commande.statut, Commande.OUVERTE)
+        self.assertEqual(self.moet.stock_actuel, 4)
+
+    def test_une_commande_vide_ne_bloque_pas_la_cloture(self):
+        from . import cloture
+        self.ouvrir()  # table ouverte puis laissée vide
+        self.assertEqual(cloture.verifier(cloture.soiree_courante()), [])
+        self.client.force_login(self.gerant)
+        self.client.post(reverse('cloturer'), {'fond_de_caisse': 0})
+        self.assertTrue(Cloture.objects.exists())
+        self.assertFalse(Commande.objects.filter(statut=Commande.OUVERTE).exists())

@@ -10,6 +10,7 @@ urlpatterns = [
     path('commande/<int:commande_id>/ajouter/', views.ajouter, name='ajouter'),
     path('commande/<int:commande_id>/payer/', views.payer, name='payer'),
     path('commande/<int:commande_id>/annuler/', views.annuler, name='annuler'),
+    path('commande/<int:commande_id>/abandonner/', views.abandonner, name='abandonner'),
     path('commande/<int:commande_id>/ticket/', views.ticket, name='ticket'),
     path('ligne/<int:ligne_id>/retirer/', views.retirer, name='retirer'),
     path('ventes/', views.ventes, name='ventes'),  # bilan de la soirée

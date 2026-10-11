@@ -34,7 +34,7 @@
         {% if table.commande %}
         <a href="{% url 'commande' table.commande.pk %}" class="carte-table occupee">
             <span class="nom-table">{{ table.nom }}</span>
-            <span class="montant-table">{{ table.commande.montant_total|fcfa }}</span>
+            <span class="montant-table">{% if table.commande.vide %}Vide · aucun article{% else %}{{ table.commande.montant_total|fcfa }}{% endif %}</span>
             {% if table.commande.montant_paye %}<span class="detail-table">reste {{ table.commande.reste_du|fcfa }}</span>{% endif %}
             <span class="detail-table"><i class="fas fa-user"></i> {{ table.commande.serveur.username }} · {{ table.commande.date_ouverture|time:"H:i" }}</span>
         </a>
@@ -102,8 +102,16 @@
                     <td>{{ c.client|default:"—" }}{% if c.telephone %}<div class="discret">{{ c.telephone }}</div>{% endif %}</td>
                     <td>{{ c.serveur.username }}</td>
                     <td class="discret">{{ c.date_ouverture|time:"H:i" }}</td>
-                    <td class="nombre fort">{{ c.montant_total|fcfa }}{% if c.montant_paye %}<div class="discret">reste {{ c.reste_du|fcfa }}</div>{% endif %}</td>
-                    <td class="nombre"><a href="{% url 'commande' c.pk %}" class="btn btn-petit">Ouvrir</a></td>
+                    <td class="nombre fort">{% if c.vide %}<span class="badge badge-inactif">Vide</span>{% else %}{{ c.montant_total|fcfa }}{% if c.montant_paye %}<div class="discret">reste {{ c.reste_du|fcfa }}</div>{% endif %}{% endif %}</td>
+                    <td class="nombre actions-ligne">
+                        <a href="{% url 'commande' c.pk %}" class="btn btn-petit">{% if c.vide %}<i class="fas fa-plus"></i> Articles{% else %}Ouvrir{% endif %}</a>
+                        {% if c.vide %}
+                        <form method="post" action="{% url 'abandonner' c.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-petit" title="Supprimer cette commande vide"><i class="fas fa-times"></i> Abandonner</button>
+                        </form>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

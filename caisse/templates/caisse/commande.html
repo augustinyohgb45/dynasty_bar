@@ -134,7 +134,18 @@
         </form>
         {% endif %}
 
-        {% if user.is_superuser and commande.est_ouverte and not paiements %}
+        {% if commande.est_ouverte and est_vide %}
+        <div class="panneau-corps commande-vide">
+            <p class="texte-discret">Cette commande est encore vide : touchez une boisson à gauche pour l'ajouter.
+            Ouverte par erreur ou client parti ? Abandonnez-la, elle disparaîtra de la liste.</p>
+            <form method="post" action="{% url 'abandonner' commande.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-bloc"><i class="fas fa-times"></i> Abandonner cette commande vide</button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if user.is_superuser and commande.est_ouverte and not paiements and not est_vide %}
         <details class="panneau-corps annulation">
             <summary>Annuler la commande</summary>
             <form method="post" action="{% url 'annuler' commande.pk %}">

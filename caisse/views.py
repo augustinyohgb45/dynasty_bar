@@ -28,8 +28,10 @@ def tables(request):
     """Plan des tables avec leur commande en cours, et ventes au comptoir."""
     ouvertes = list(Commande.objects.filter(statut=Commande.OUVERTE).avec_totaux()
                     .select_related('table', 'serveur').order_by('date_ouverture'))
+    avec_articles = set(LigneCommande.objects.filter(commande__in=ouvertes).values_list('commande_id', flat=True))
     for c in ouvertes:
         c.reste_du = c.montant_total - c.montant_paye
+        c.vide = c.pk not in avec_articles and not c.montant_paye
     par_table = {c.table_id: c for c in ouvertes if c.table_id}
     zones = []
     for cle, libelle in Table.ZONES:
@@ -70,6 +72,7 @@ def commande(request, commande_id):
         'commande': commande,
         'lignes': commande.lignes.select_related('produit'),
         'paiements': commande.paiements.select_related('recu_par'),
+        'est_vide': commande.est_vide,
         'total': commande.total,
         'total_paye': commande.total_paye,
         'reste': commande.reste,
@@ -127,6 +130,19 @@ def payer(request, commande_id):
         return redirect(f"{reverse('commande', args=[commande.pk])}?rendu={monnaie}#addition")
     messages.success(request, f"{texte} Reste à payer : {commande.reste:,} FCFA.".replace(',', ' '))
     return redirect('commande', commande.pk)
+
+
+@login_required
+@require_POST
+def abandonner(request, commande_id):
+    commande = get_object_or_404(Commande, pk=commande_id)
+    try:
+        services.abandonner(commande, request.user)
+    except ErreurCaisse as e:
+        messages.error(request, str(e))
+        return redirect('commande', commande.pk)
+    messages.success(request, f"Commande vide {commande.numero} ({commande.emplacement}) abandonnée.")
+    return redirect('tables')
 
 
 @gerant_requis

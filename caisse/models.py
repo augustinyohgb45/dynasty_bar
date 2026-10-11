@@ -85,6 +85,11 @@ class Commande(models.Model):
         return self.statut == self.OUVERTE
 
     @property
+    def est_vide(self):
+        """Aucun article ni paiement : rien n'a été servi ni encaissé."""
+        return not self.lignes.exists() and not self.paiements.exists()
+
+    @property
     def total(self):
         return self.lignes.aggregate(total=Sum(F('quantite') * F('prix_unitaire')))['total'] or 0
 

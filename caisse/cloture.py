@@ -19,7 +19,7 @@ from audit.models import JournalAudit
 from stock.models import MouvementStock, Produit
 
 from .models import Cloture, ComptageCloture, Commande, InventaireCloture, LigneCommande, Paiement
-from .services import ErreurCaisse, bornes_soiree, debut_soiree, encaissements_par_mode
+from .services import ErreurCaisse, abandonner, bornes_soiree, debut_soiree, encaissements_par_mode
 
 
 def soiree_courante():
@@ -61,7 +61,8 @@ def bilan(jour, serveur=None):
         'par_serveur': sorted(par_serveur.values(), key=lambda s: -s['total']),
         'articles': (lignes.values('produit__nom')
                      .annotate(nb=Sum('quantite'), total=Sum(F('quantite') * F('prix_unitaire'))).order_by('-total')),
-        'ouvertes': commandes.filter(statut=Commande.OUVERTE).avec_totaux().select_related('table', 'serveur'),
+        'ouvertes': (commandes.filter(statut=Commande.OUVERTE).avec_totaux().filter(montant_total__gt=0)
+                     .select_related('table', 'serveur')),
         'annulees': commandes.filter(statut=Commande.ANNULEE).select_related('table', 'serveur'),
         'pertes': pertes,
         'retraits': JournalAudit.objects.filter(action=JournalAudit.RETRAIT, date__gte=debut, date__lt=fin),
@@ -82,7 +83,8 @@ def verifier(jour):
     problemes = []
     if cloture_validee(jour) is not None:
         problemes.append("Cette soirée est déjà clôturée.")
-    ouvertes = Commande.objects.filter(statut=Commande.OUVERTE).select_related('table')
+    # Les commandes vides ne bloquent pas : elles sont fermées automatiquement à la clôture
+    ouvertes = [c for c in Commande.objects.filter(statut=Commande.OUVERTE).select_related('table') if not c.est_vide]
     if ouvertes:
         liste = ", ".join(f"{c.emplacement} {c.numero}" for c in ouvertes)
         problemes.append(f"Des additions sont encore ouvertes : {liste}. Encaissez-les ou annulez-les avant de clôturer.")
@@ -100,6 +102,8 @@ def cloturer(jour, utilisateur, fond_de_caisse, comptes_par_mode, comptes_par_pr
     problemes = verifier(jour)
     if problemes:
         raise ErreurCaisse(" ".join(problemes))
+    for vide in Commande.objects.filter(statut=Commande.OUVERTE):
+        abandonner(vide, utilisateur, motif="Commande vide fermée à la clôture")
     donnees = bilan(jour)
     debut, fin = donnees['debut'], donnees['fin']
     cloture = Cloture.objects.create(

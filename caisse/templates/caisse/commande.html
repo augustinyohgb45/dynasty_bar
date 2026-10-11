@@ -8,7 +8,7 @@
     <div>
         <h1>{{ commande.emplacement }} <span class="texte-discret">{{ commande.numero }}</span></h1>
         <p class="sous-titre">
-            Ouverte à {{ commande.date_ouverture|time:"H:i" }} par {{ commande.serveur.username }}{% if commande.client %} · client : {{ commande.client }}{% endif %}
+            {{ commande.get_nature_display }} · ouverte à {{ commande.date_ouverture|time:"H:i" }} par {{ commande.serveur.username }}{% if commande.client %} · client : {{ commande.client }}{% endif %}{% if commande.telephone %} ({{ commande.telephone }}){% endif %}
             {% if not commande.est_ouverte %} · <span class="badge {% if commande.statut == 'payee' %}badge-ok{% else %}badge-rupture{% endif %}">{{ commande.get_statut_display }}</span>{% endif %}
         </p>
     </div>

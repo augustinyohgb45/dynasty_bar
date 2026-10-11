@@ -204,7 +204,7 @@ table.tableau { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .champ label { display: block; font-size: .8rem; font-weight: 600; color: var(--texte-2); margin-bottom: 6px; }
 .champ .requis { color: var(--or); }
 
-input[type=text], input[type=number], input[type=password], input[type=search], input[type=date], select, textarea {
+input[type=text], input[type=number], input[type=password], input[type=search], input[type=date], input[type=tel], select, textarea {
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
@@ -425,3 +425,8 @@ a.filtre.actif { color: #1a1406; }
 .commande-soldee .monnaie { margin: 0; font-size: 1.05rem; }
 .btn-recu { padding: 14px 16px; font-size: 1.05rem; }
 .grille-caisse.grille-fermee { grid-template-columns: minmax(0, 480px); }
+
+/* ---------- Commandes sans table ---------- */
+.grille-sans-table { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 24px; align-items: start; }
+#commande-client { scroll-margin-top: 16px; }
+#commande-client:target { border-color: var(--or); box-shadow: 0 0 0 3px rgba(212, 175, 55, .18); }

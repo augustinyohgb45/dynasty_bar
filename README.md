@@ -73,6 +73,10 @@ rouge et filtrables. Le journal s'exporte pour Excel et ne peut être ni modifi�
 - **Commande** : chaque article ajouté sort aussitôt du stock, au prix du moment (un changement de
   prix ultérieur ne modifie pas les commandes déjà passées). Les ventes ne se saisissent plus dans
   « Mouvements » : elles passent toutes par la caisse.
+- **Commande client (sans table)** : bouton « Commande client » en haut de la caisse. Nom du client
+  obligatoire, téléphone facultatif ; utile quand toutes les tables sont occupées (un message le
+  signale), pour un client debout, en terrasse ou à emporter. Le reçu porte le nom du client.
+  « Vente rapide au comptoir » reste disponible pour une consommation sans nom.
 - **Paiement** : espèces (monnaie à rendre calculée), MTN MoMo, Orange Money, Moov Money, Wave ou
   carte (référence de transaction obligatoire). Une addition peut être réglée en plusieurs fois et
   avec plusieurs modes ; la table se libère quand tout est payé.

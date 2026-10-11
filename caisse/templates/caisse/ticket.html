@@ -34,7 +34,7 @@
     <hr>
     <div>{% if commande.statut == 'payee' %}Reçu{% else %}Addition{% endif %} {{ commande.numero }} · {{ commande.emplacement }}</div>
     <div>{{ maintenant|date:"d/m/Y H:i" }} · servi par {{ commande.serveur.username }}</div>
-    {% if commande.client %}<div>Client : {{ commande.client }}</div>{% endif %}
+    {% if commande.client %}<div>Client : {{ commande.client }}{% if commande.telephone %} · {{ commande.telephone }}{% endif %}</div>{% endif %}
     <hr>
     <table>
         {% for ligne in lignes %}

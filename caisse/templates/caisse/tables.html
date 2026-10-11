@@ -7,15 +7,22 @@
 <div class="entete-page">
     <div>
         <h1>Caisse</h1>
-        <p class="sous-titre">{{ nb_occupees }} table{{ nb_occupees|pluralize }} occupée{{ nb_occupees|pluralize }} · {{ montant_en_cours|fcfa }} en attente d'encaissement.</p>
+        <p class="sous-titre">{{ nb_occupees }} table{{ nb_occupees|pluralize }} occupée{{ nb_occupees|pluralize }}{% if sans_table %} · {{ sans_table|length }} commande{{ sans_table|length|pluralize }} sans table{% endif %} · {{ montant_en_cours|fcfa }} en attente d'encaissement.</p>
     </div>
-    <a href="{% url 'ventes' %}" class="btn"><i class="fas fa-chart-line"></i> Ventes de la soirée</a>
+    <div class="actions">
+        <a href="#commande-client" class="btn btn-or" id="bouton-commande-client"><i class="fas fa-user-plus"></i> Commande client</a>
+        <a href="{% url 'ventes' %}" class="btn"><i class="fas fa-chart-line"></i> Ventes de la soirée</a>
+    </div>
 </div>
 
 {% if cloture %}
 <div class="messages"><div class="message attention"><i class="fas fa-lock"></i>
     <span>La soirée est clôturée depuis {{ cloture.date|date:"H:i" }} (par {{ cloture.par.username }}) : aucune nouvelle commande n'est possible.
     {% if user.is_superuser %}<a href="{% url 'cloture_detail' cloture.pk %}">Voir le rapport ou rouvrir la soirée</a>{% else %}Adressez-vous à l'admin.{% endif %}</span>
+</div></div>
+{% elif toutes_occupees %}
+<div class="messages"><div class="message info"><i class="fas fa-chair"></i>
+    <span>Toutes les tables sont occupées : saisissez une <a href="#commande-client">commande client</a> sans table.</span>
 </div></div>
 {% endif %}
 
@@ -47,27 +54,55 @@
 <p class="texte-discret">Aucune table configurée. L'admin peut en ajouter dans « Réglages avancés » > Tables.</p>
 {% endfor %}
 
+<div class="grille-sans-table">
+    <section class="panneau" id="commande-client">
+        <div class="panneau-entete"><h2><i class="fas fa-user-plus"></i>Commande client (sans table)</h2></div>
+        <div class="panneau-corps">
+            <p class="texte-discret">Pour un client debout, en terrasse, à emporter, ou quand toutes les tables sont prises. Le reçu portera son nom.</p>
+            <form method="post" action="{% url 'ouvrir_comptoir' %}" class="formulaire-client">
+                {% csrf_token %}
+                <input type="hidden" name="nature" value="client">
+                <div class="champ">
+                    <label for="client-nom">Nom du client <span class="requis">*</span></label>
+                    <input type="text" name="client" id="client-nom" maxlength="80" required placeholder="Ex. : M. Kouassi">
+                </div>
+                <div class="champ">
+                    <label for="client-telephone">Téléphone (facultatif)</label>
+                    <input type="tel" name="telephone" id="client-telephone" maxlength="20" placeholder="Ex. : 07 00 00 00 00" inputmode="tel">
+                </div>
+                <button type="submit" class="btn btn-or btn-bloc"><i class="fas fa-plus"></i> Saisir la commande</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-glass-cheers"></i>Vente rapide au comptoir</h2></div>
+        <div class="panneau-corps">
+            <p class="texte-discret">Une consommation servie et payée tout de suite au bar, sans nom de client.</p>
+            <form method="post" action="{% url 'ouvrir_comptoir' %}">
+                {% csrf_token %}
+                <input type="hidden" name="nature" value="comptoir">
+                <button type="submit" class="btn btn-bloc"><i class="fas fa-bolt"></i> Nouvelle vente au comptoir</button>
+            </form>
+        </div>
+    </section>
+</div>
+
 <section class="panneau">
-    <div class="panneau-entete">
-        <h2><i class="fas fa-glass-cheers"></i>Comptoir</h2>
-        <form method="post" action="{% url 'ouvrir_comptoir' %}" class="recherche">
-            {% csrf_token %}
-            <input type="text" name="client" placeholder="Nom du client (facultatif)" aria-label="Nom du client" maxlength="80">
-            <button type="submit" class="btn btn-or"><i class="fas fa-plus"></i> Nouvelle vente</button>
-        </form>
-    </div>
-    {% if comptoir %}
+    <div class="panneau-entete"><h2><i class="fas fa-receipt"></i>Commandes sans table en cours</h2></div>
+    {% if sans_table %}
     <div class="tableau-conteneur">
         <table class="tableau">
-            <thead><tr><th>Commande</th><th>Client</th><th>Serveur</th><th>Ouverte à</th><th class="nombre">Total</th><th></th></tr></thead>
+            <thead><tr><th>Commande</th><th>Type</th><th>Client</th><th>Serveur</th><th>Ouverte à</th><th class="nombre">Total</th><th></th></tr></thead>
             <tbody>
-                {% for c in comptoir %}
+                {% for c in sans_table %}
                 <tr>
                     <td class="fort">{{ c.numero }}</td>
-                    <td>{{ c.client|default:"—" }}</td>
+                    <td><span class="badge {% if c.nature == 'client' %}badge-role-admin{% else %}badge-role-caisse{% endif %}">{{ c.get_nature_display }}</span></td>
+                    <td>{{ c.client|default:"—" }}{% if c.telephone %}<div class="discret">{{ c.telephone }}</div>{% endif %}</td>
                     <td>{{ c.serveur.username }}</td>
                     <td class="discret">{{ c.date_ouverture|time:"H:i" }}</td>
-                    <td class="nombre fort">{{ c.montant_total|fcfa }}</td>
+                    <td class="nombre fort">{{ c.montant_total|fcfa }}{% if c.montant_paye %}<div class="discret">reste {{ c.reste_du|fcfa }}</div>{% endif %}</td>
                     <td class="nombre"><a href="{% url 'commande' c.pk %}" class="btn btn-petit">Ouvrir</a></td>
                 </tr>
                 {% endfor %}
@@ -75,7 +110,16 @@
         </table>
     </div>
     {% else %}
-    <div class="panneau-corps texte-discret">Aucune vente au comptoir en cours.</div>
+    <div class="panneau-corps texte-discret">Aucune commande sans table en cours.</div>
     {% endif %}
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // « Commande client » : amène au formulaire et place le curseur sur le nom
+  document.getElementById('bouton-commande-client').addEventListener('click', function () {
+    setTimeout(function () { document.getElementById('client-nom').focus(); }, 300);
+  });
+</script>
 {% endblock %}

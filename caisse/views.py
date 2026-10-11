@@ -40,7 +40,8 @@ def tables(request):
             zones.append((libelle, liste))
     context = {
         'zones': zones,
-        'comptoir': [c for c in ouvertes if not c.table_id],
+        'sans_table': [c for c in ouvertes if not c.table_id],
+        'toutes_occupees': bool(zones) and all(t.commande for _, liste in zones for t in liste),
         'cloture': cloture.cloture_validee(cloture.soiree_courante()),
         'nb_occupees': len(par_table),
         'montant_en_cours': sum(c.reste_du for c in ouvertes),
@@ -53,7 +54,8 @@ def tables(request):
 def ouvrir(request, table_id=None):
     table = get_object_or_404(Table, pk=table_id, active=True) if table_id else None
     try:
-        commande = services.ouvrir_commande(table, request.user, request.POST.get('client', ''))
+        commande = services.ouvrir_commande(table, request.user, request.POST.get('client', ''),
+                                            nature=request.POST.get('nature'), telephone=request.POST.get('telephone', ''))
     except ErreurCaisse as e:
         messages.error(request, str(e))
         return redirect('tables')

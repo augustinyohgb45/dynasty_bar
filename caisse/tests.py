@@ -266,3 +266,47 @@ class ClotureTests(BaseCaisse):
         self.assertContains(self.client.get(reverse('cloture_detail', args=[resultat.pk])), 'Comptage de la caisse')
         self.assertContains(self.client.get(reverse('clotures')), 'Rapport')
         self.assertContains(self.client.get(reverse('tables')), 'clôturée')
+
+
+class CommandeClientTests(BaseCaisse):
+    def ouvrir_client(self, **donnees):
+        return self.client.post(reverse('ouvrir_comptoir'), dict({'nature': 'client'}, **donnees))
+
+    def test_commande_client_sans_table_jusqu_au_recu(self):
+        reponse = self.ouvrir_client(client='M. Kouassi', telephone='07 00 00 00 00')
+        commande = Commande.objects.get()
+        self.assertRedirects(reponse, reverse('commande', args=[commande.pk]))
+        self.assertEqual((commande.nature, commande.table, commande.emplacement),
+                         (Commande.CLIENT, None, 'Client M. Kouassi'))
+        self.ajouter(commande, self.moet)
+        self.payer(commande, Paiement.WAVE, 50000, reference='W-77')
+        commande.refresh_from_db()
+        self.assertEqual(commande.statut, Commande.PAYEE)
+        self.assertContains(self.client.get(reverse('commande', args=[commande.pk])), 'Imprimer le reçu')
+        recu = self.client.get(reverse('ticket', args=[commande.pk]))
+        self.assertContains(recu, 'Client : M. Kouassi · 07 00 00 00 00')
+        self.assertContains(recu, 'PAYÉ')
+        self.assertIn('Commande client', JournalAudit.objects.get(action='ouverture').details)
+
+    def test_nom_du_client_obligatoire(self):
+        self.ouvrir_client(client='  ')
+        self.assertFalse(Commande.objects.exists())
+        self.assertContains(self.client.get(reverse('tables')), 'Saisissez le nom du client')
+
+    def test_plusieurs_commandes_clients_en_parallele(self):
+        self.ouvrir_client(client='Awa')
+        self.ouvrir_client(client='Koffi')
+        self.client.post(reverse('ouvrir_comptoir'), {'nature': 'comptoir'})
+        natures = sorted(Commande.objects.values_list('nature', flat=True))
+        self.assertEqual(natures, ['client', 'client', 'comptoir'])
+        page = self.client.get(reverse('tables'))
+        self.assertContains(page, 'Koffi')
+        self.assertEqual(len(page.context['sans_table']), 3)
+
+    def test_message_quand_toutes_les_tables_sont_occupees(self):
+        self.assertFalse(self.client.get(reverse('tables')).context['toutes_occupees'])
+        for table in Table.objects.filter(active=True):
+            self.client.post(reverse('ouvrir_table', args=[table.pk]))
+        page = self.client.get(reverse('tables'))
+        self.assertTrue(page.context['toutes_occupees'])
+        self.assertContains(page, 'Toutes les tables sont occupées')

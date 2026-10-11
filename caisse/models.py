@@ -44,9 +44,16 @@ class Commande(models.Model):
     ANNULEE = 'annulee'
     STATUTS = [(OUVERTE, "En cours"), (PAYEE, "Payée"), (ANNULEE, "Annulée")]
 
+    TABLE = 'table'
+    COMPTOIR = 'comptoir'
+    CLIENT = 'client'
+    NATURES = [(TABLE, "Table"), (COMPTOIR, "Comptoir"), (CLIENT, "Commande client")]
+
+    nature = models.CharField("type de commande", max_length=10, choices=NATURES, default=COMPTOIR)
     table = models.ForeignKey(Table, on_delete=models.PROTECT, null=True, blank=True, related_name='commandes',
-                              help_text="Vide pour une vente au comptoir.")
+                              help_text="Uniquement pour une commande à table.")
     client = models.CharField("client", max_length=80, blank=True)
+    telephone = models.CharField("téléphone du client", max_length=20, blank=True)
     serveur = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='commandes')
     statut = models.CharField(max_length=10, choices=STATUTS, default=OUVERTE)
     date_ouverture = models.DateTimeField(default=timezone.now)
@@ -67,7 +74,11 @@ class Commande(models.Model):
 
     @property
     def emplacement(self):
-        return str(self.table) if self.table_id else "Comptoir"
+        if self.table_id:
+            return str(self.table)
+        if self.nature == self.CLIENT:
+            return f"Client {self.client}" if self.client else "Commande client"
+        return "Comptoir"
 
     @property
     def est_ouverte(self):

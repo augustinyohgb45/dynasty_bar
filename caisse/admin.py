@@ -26,12 +26,12 @@ class PaiementInline(admin.TabularInline):
 
 @admin.register(Commande)
 class CommandeAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'emplacement', 'serveur', 'statut', 'date_ouverture', 'date_cloture')
-    list_filter = ('statut', 'table__zone', 'serveur')
+    list_display = ('numero', 'nature', 'emplacement', 'client', 'serveur', 'statut', 'date_ouverture', 'date_cloture')
+    list_filter = ('statut', 'nature', 'table__zone', 'serveur')
     date_hierarchy = 'date_ouverture'
     inlines = [LigneInline, PaiementInline]
     # Les commandes se gèrent depuis la caisse : consultation seule ici
-    readonly_fields = ('table', 'client', 'serveur', 'statut', 'date_ouverture', 'date_cloture', 'motif_annulation')
+    readonly_fields = ('nature', 'table', 'client', 'telephone', 'serveur', 'statut', 'date_ouverture', 'date_cloture', 'motif_annulation')
 
     def has_add_permission(self, request):
         return False

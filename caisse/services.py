@@ -27,8 +27,20 @@ def _objet(commande):
     return f"{commande.emplacement} {commande.numero}"
 
 
-def ouvrir_commande(table, utilisateur, client=''):
-    """Ouvre une commande, ou reprend celle déjà ouverte sur la table."""
+def ouvrir_commande(table, utilisateur, client='', nature=None, telephone=''):
+    """
+    Ouvre une commande, ou reprend celle déjà ouverte sur la table.
+    Sans table : vente au comptoir, ou commande client (nom du client obligatoire),
+    utile notamment quand toutes les tables sont occupées.
+    """
+    client = (client or '').strip()[:80]
+    telephone = (telephone or '').strip()[:20]
+    if table is not None:
+        nature = Commande.TABLE
+    elif nature != Commande.CLIENT:
+        nature = Commande.COMPTOIR
+    if nature == Commande.CLIENT and not client:
+        raise ErreurCaisse("Saisissez le nom du client pour ouvrir une commande client.")
     jour = timezone.localtime(debut_soiree()).date()
     if Cloture.objects.filter(soiree=jour, statut=Cloture.VALIDEE).exists():
         raise ErreurCaisse(f"La soirée du {jour:%d/%m/%Y} est clôturée : aucune nouvelle commande n'est possible. "
@@ -37,9 +49,13 @@ def ouvrir_commande(table, utilisateur, client=''):
         existante = Commande.objects.filter(table=table, statut=Commande.OUVERTE).first()
         if existante is not None:
             return existante
-    commande = Commande.objects.create(table=table, serveur=utilisateur, client=(client or '').strip()[:80])
+    commande = Commande.objects.create(table=table, nature=nature, serveur=utilisateur, client=client,
+                                       telephone=telephone)
+    details = [f"Type : {commande.get_nature_display()}"]
+    if client:
+        details.append(f"Client : {client}{f' ({telephone})' if telephone else ''}")
     journaliser(JournalAudit.OUVERTURE, objet=_objet(commande), type_objet="Commande",
-                details=f"Client : {commande.client}" if commande.client else '', utilisateur=utilisateur)
+                details="\n".join(details), utilisateur=utilisateur)
     return commande
 
 

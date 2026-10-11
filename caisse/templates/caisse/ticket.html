@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ticket {{ commande.numero }} · Dynasty Night Club</title>
+    <title>{% if commande.statut == 'payee' %}Reçu{% else %}Addition{% endif %} {{ commande.numero }} · Dynasty Night Club</title>
     <style>
         /* Ticket pour imprimante thermique 80 mm */
         body { margin: 0; background: #e9e9ee; font: 13px/1.4 "Courier New", monospace; color: #000; }
@@ -32,7 +32,7 @@
         <div>NIGHT CLUB</div>
     </div>
     <hr>
-    <div>{% if commande.statut == 'payee' %}Ticket{% else %}Addition{% endif %} {{ commande.numero }} · {{ commande.emplacement }}</div>
+    <div>{% if commande.statut == 'payee' %}Reçu{% else %}Addition{% endif %} {{ commande.numero }} · {{ commande.emplacement }}</div>
     <div>{{ maintenant|date:"d/m/Y H:i" }} · servi par {{ commande.serveur.username }}</div>
     {% if commande.client %}<div>Client : {{ commande.client }}</div>{% endif %}
     <hr>
@@ -47,12 +47,22 @@
         {% for paiement in paiements %}
         <tr><td>{{ paiement.get_mode_display }}</td><td class="montant">{{ paiement.montant|fcfa }}</td></tr>
         {% endfor %}
-        {% if total_paye %}<tr><td>Reste à payer</td><td class="montant">{{ reste|fcfa }}</td></tr>{% endif %}
+        {% if total_paye and commande.statut != 'payee' %}<tr><td>Reste à payer</td><td class="montant">{{ reste|fcfa }}</td></tr>{% endif %}
     </table>
     {% if commande.statut == 'annulee' %}<hr><div class="centre">*** COMMANDE ANNULÉE ***</div>{% endif %}
+    {% if commande.statut == 'payee' %}<hr><div class="centre">*** PAYÉ — MERCI ***</div>{% endif %}
     <hr>
     <div class="centre">Merci de votre visite !</div>
 </div>
-<div class="actions"><button type="button" onclick="window.print()">Imprimer</button></div>
+<div class="actions">
+    <button type="button" onclick="window.print()">Imprimer</button>
+    <button type="button" onclick="window.close()">Fermer</button>
+</div>
+{% if request.GET.imprimer %}
+<script>
+  // Ouvert depuis « Imprimer le reçu » : la fenêtre d'impression s'affiche directement
+  window.addEventListener('load', function () { window.print(); });
+</script>
+{% endif %}
 </body>
 </html>

@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -75,6 +76,7 @@ def commande(request, commande_id):
         'modes': Paiement.MODES,
         'modes_avec_reference': sorted(Paiement.MODES_AVEC_REFERENCE),
         'billets': [5000, 10000, 20000, 50000],
+        'monnaie_rendue': _entier(request.GET.get('rendu'), 0),
     }
     return render(request, 'caisse/commande.html', context)
 
@@ -118,8 +120,9 @@ def payer(request, commande_id):
     if monnaie:
         texte += f" Monnaie à rendre : {monnaie:,} FCFA.".replace(',', ' ')
     if commande.statut == Commande.PAYEE:
+        # On reste sur la commande pour proposer d'imprimer le reçu
         messages.success(request, f"Commande {commande.numero} soldée. {texte}")
-        return redirect('tables')
+        return redirect(f"{reverse('commande', args=[commande.pk])}?rendu={monnaie}#addition")
     messages.success(request, f"{texte} Reste à payer : {commande.reste:,} FCFA.".replace(',', ' '))
     return redirect('commande', commande.pk)
 

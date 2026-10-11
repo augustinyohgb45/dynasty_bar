@@ -14,12 +14,12 @@
     </div>
     <div class="actions">
         {% if commande.est_ouverte %}<a href="#addition" class="btn btn-or lien-addition"><i class="fas fa-receipt"></i> Addition · {{ total|fcfa }}</a>{% endif %}
-        <a href="{% url 'ticket' commande.pk %}" class="btn" target="_blank" rel="noopener"><i class="fas fa-receipt"></i> Ticket</a>
+        <a href="{% url 'ticket' commande.pk %}" class="btn" target="_blank" rel="noopener"><i class="fas fa-receipt"></i> {% if commande.statut == 'payee' %}Reçu{% else %}Addition à imprimer{% endif %}</a>
         <a href="{% url 'tables' %}" class="btn"><i class="fas fa-th-large"></i> Tables</a>
     </div>
 </div>
 
-<div class="grille-caisse">
+<div class="grille-caisse{% if not commande.est_ouverte %} grille-fermee{% endif %}">
     {% if commande.est_ouverte %}
     <section class="panneau" id="catalogue">
         <div class="panneau-entete">
@@ -90,6 +90,19 @@
             <div class="ligne-total grand {% if reste %}negatif{% else %}positif{% endif %}"><span>Reste à payer</span><span>{{ reste|fcfa }}</span></div>
             {% endif %}
         </div>
+
+        {% if commande.statut == 'payee' %}
+        <div class="panneau-corps commande-soldee">
+            <div class="soldee-titre"><i class="fas fa-check-circle"></i> Commande soldée</div>
+            {% if monnaie_rendue %}
+            <div class="monnaie">Monnaie à rendre : {{ monnaie_rendue|fcfa }}</div>
+            {% endif %}
+            <a href="{% url 'ticket' commande.pk %}?imprimer=1" class="btn btn-or btn-bloc btn-recu" target="_blank" rel="noopener" id="imprimer-recu">
+                <i class="fas fa-print"></i> Imprimer le reçu
+            </a>
+            <a href="{% url 'tables' %}" class="btn btn-bloc"><i class="fas fa-th-large"></i> Retour aux tables</a>
+        </div>
+        {% endif %}
 
         {% if commande.est_ouverte and total %}
         <form method="post" action="{% url 'payer' commande.pk %}" class="panneau-corps formulaire-paiement" id="formulaire-paiement" data-reste="{{ reste }}">

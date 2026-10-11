@@ -84,11 +84,25 @@ class PaiementTests(BaseCaisse):
         commande = self.ouvrir()
         self.ajouter(commande, self.moet)
         reponse = self.payer(commande, Paiement.ESPECES, 60000)
-        self.assertRedirects(reponse, reverse('tables'), fetch_redirect_response=False)
         commande.refresh_from_db()
         self.assertEqual(commande.statut, Commande.PAYEE)
         self.assertEqual(commande.paiements.get().montant, 50000)
-        self.assertContains(self.client.get(reverse('tables')), 'Monnaie à rendre : 10')
+        # On reste sur la commande soldée, qui propose d'imprimer le reçu
+        url = reverse('commande', args=[commande.pk])
+        self.assertRedirects(reponse, f"{url}?rendu=10000#addition", fetch_redirect_response=False)
+        page = self.client.get(url, {'rendu': 10000})
+        self.assertContains(page, 'Commande soldée')
+        self.assertContains(page, 'Imprimer le reçu')
+        self.assertContains(page, 'Monnaie à rendre : 10')
+        recu = self.client.get(reverse('ticket', args=[commande.pk]), {'imprimer': 1})
+        self.assertContains(recu, 'window.print()')
+        self.assertContains(recu, 'PAYÉ')
+
+    def test_pas_de_recu_tant_que_la_commande_n_est_pas_soldee(self):
+        commande = self.ouvrir()
+        self.ajouter(commande, self.moet)
+        self.payer(commande, Paiement.ESPECES, 20000)
+        self.assertNotContains(self.client.get(reverse('commande', args=[commande.pk])), 'Imprimer le reçu')
 
     def test_paiement_partage_entre_deux_modes(self):
         commande = self.ouvrir()

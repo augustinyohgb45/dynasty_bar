@@ -32,6 +32,16 @@ ventes ; l'« Espace admin » donne accès à tout. Après connexion, l'admin ar
 et la caisse sur le plan des tables. Les comptes se créent dans Administration > « Comptes du personnel »
 (rôle Caisse ou Admin, activation, nouveau mot de passe).
 
+## Suivi en direct (admin)
+
+Menu Pilotage > « Suivi en direct » : la page s'actualise toute seule toutes les 10 secondes.
+- une fiche par membre du personnel ayant travaillé ce soir : encaissé, commandes soldées et en
+  cours, actions sensibles, dernière action et pastille verte si active dans les 15 dernières minutes ;
+- les commandes en cours avec leur contenu, les derniers encaissements (mode, référence) ;
+- le fil des actions de la soirée, filtrable sur une personne (cliquer sur sa fiche).
+
+« Ventes de la soirée » permet aussi à l'admin de filtrer sur un caissier ou une caissière.
+
 ## Espace gérance
 
 - **Tableau de bord** (soirée en cours, 7 jours, mois, 30 jours) : chiffre d'affaires, marge estimée,

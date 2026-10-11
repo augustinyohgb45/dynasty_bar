@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Suivi en direct{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1><span class="point-direct" aria-hidden="true"></span> Suivi en direct</h1>
+        <p class="sous-titre">Ce que fait la caisse en ce moment · soirée du {{ jour|date:"l j F" }} · <span id="heure-maj">mis à jour à {{ maintenant|date:"H:i:s" }}</span></p>
+    </div>
+    <div class="actions">
+        <form method="get" class="recherche">
+            <select name="personne" aria-label="Personne suivie" onchange="this.form.submit()">
+                <option value="">Tout le personnel</option>
+                {% for nom in noms %}<option value="{{ nom }}"{% if personne == nom %} selected{% endif %}>{{ nom }}</option>{% endfor %}
+            </select>
+        </form>
+        <button type="button" class="btn" id="pause-direct"><i class="fas fa-pause"></i> Pause</button>
+    </div>
+</div>
+
+<div id="zone-direct">
+    {% include 'gerance/includes/direct_contenu.html' %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Actualisation automatique toutes les 10 secondes (suspendue si l'onglet est masqué ou en pause)
+  (function () {
+    var zone = document.getElementById('zone-direct');
+    var heure = document.getElementById('heure-maj');
+    var bouton = document.getElementById('pause-direct');
+    var enPause = false;
+
+    function actualiser() {
+      if (enPause || document.hidden) { return; }
+      var url = new URL(window.location.href);
+      url.searchParams.set('fragment', '1');
+      fetch(url, { headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin' })
+        .then(function (r) {
+          if (r.redirected || !r.ok) { throw new Error('session'); }
+          return r.text();
+        })
+        .then(function (html) {
+          zone.innerHTML = html;
+          heure.textContent = 'mis à jour à ' + new Date().toLocaleTimeString('fr-FR');
+          heure.classList.remove('negatif');
+        })
+        .catch(function () {
+          heure.textContent = 'connexion perdue, nouvel essai dans 10 s';
+          heure.classList.add('negatif');
+        });
+    }
+
+    bouton.addEventListener('click', function () {
+      enPause = !enPause;
+      bouton.innerHTML = enPause ? '<i class="fas fa-play"></i> Reprendre' : '<i class="fas fa-pause"></i> Pause';
+      if (!enPause) { actualiser(); }
+    });
+    document.addEventListener('visibilitychange', actualiser);
+    setInterval(actualiser, 10000);
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% load stock_extras %}
+<div class="indicateurs">
+    <div class="indicateur"><div><div class="libelle">Encaissé ce soir</div><div class="valeur">{{ encaisse_soiree|fcfa }}</div></div><div class="icone icone-vert"><i class="fas fa-cash-register"></i></div></div>
+    <div class="indicateur"><div><div class="libelle">Additions en cours</div><div class="valeur">{{ nb_ouvertes }}</div><div class="note">{{ montant_ouvert|fcfa }} à encaisser</div></div><div class="icone {% if nb_ouvertes %}icone-orange{% else %}icone-vert{% endif %}"><i class="fas fa-hourglass-half"></i></div></div>
+    <div class="indicateur"><div><div class="libelle">Personnel actif</div><div class="valeur">{{ nb_actifs }}</div><div class="note">sur {{ personnel|length }} ayant travaillé ce soir</div></div><div class="icone icone-or"><i class="fas fa-users"></i></div></div>
+</div>
+
+<section class="panneau">
+    <div class="panneau-entete"><h2><i class="fas fa-user-clock"></i>Le personnel ce soir</h2></div>
+    <div class="cartes-personnel">
+        {% for p in personnel %}
+        <a class="carte-personne{% if p.actif %} active{% endif %}" href="?personne={{ p.compte.username|urlencode }}">
+            <div class="personne-entete">
+                <span class="pastille{% if p.actif %} en-ligne{% endif %}" title="{% if p.actif %}Active dans les 15 dernières minutes{% else %}Inactive{% endif %}"></span>
+                <span class="fort">{{ p.compte.get_full_name|default:p.compte.username }}</span>
+                <span class="badge {% if p.compte.is_superuser %}badge-role-admin{% else %}badge-role-caisse{% endif %}">{% if p.compte.is_superuser %}Admin{% else %}Caisse{% endif %}</span>
+            </div>
+            <div class="personne-chiffres">
+                <div><span class="libelle">Encaissé</span><strong>{{ p.encaisse|fcfa }}</strong></div>
+                <div><span class="libelle">Soldées</span><strong>{{ p.nb_soldees }}</strong></div>
+                <div><span class="libelle">En cours</span><strong>{{ p.ouvertes }}</strong></div>
+                <div><span class="libelle">Sensibles</span><strong class="{% if p.sensibles %}negatif{% endif %}">{{ p.sensibles }}</strong></div>
+            </div>
+            <div class="discret">
+                {% if p.derniere %}Dernière action à {{ p.derniere.date|date:"H:i" }} : {{ p.derniere.get_action_display|lower }} · {{ p.derniere.objet }}{% else %}Aucune action enregistrée ce soir{% endif %}
+            </div>
+        </a>
+        {% empty %}
+        <p class="texte-discret panneau-corps">Personne n'a encore travaillé ce soir.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<div class="grille-ventes">
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-receipt"></i>Commandes en cours</h2><a href="{% url 'tables' %}" class="btn btn-petit">Caisse</a></div>
+        <div class="tableau-conteneur hauteur-limitee">
+            <table class="tableau">
+                <tbody>
+                    {% for c in ouvertes %}
+                    {% if not personne or c.serveur.username == personne %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'commande' c.pk %}" class="fort">{{ c.emplacement }} {{ c.numero }}</a>
+                            <div class="discret">{{ c.serveur.username }} · ouverte depuis {{ c.minutes }} min</div>
+                            {% if c.articles %}
+                            <div class="articles-direct">{% for l in c.articles %}{{ l.quantite }} × {{ l.produit }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+                            {% else %}
+                            <span class="badge badge-inactif">Vide</span>
+                            {% endif %}
+                        </td>
+                        <td class="nombre fort">{{ c.montant_total|fcfa }}{% if c.montant_paye %}<div class="discret">reste {{ c.reste_du|fcfa }}</div>{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr><td class="vide">Aucune commande en cours.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-cash-register"></i>Derniers encaissements</h2></div>
+        <div class="tableau-conteneur hauteur-limitee">
+            <table class="tableau">
+                <tbody>
+                    {% for p in derniers_paiements %}
+                    {% if not personne or p.recu_par.username == personne %}
+                    <tr>
+                        <td><a href="{% url 'commande' p.commande_id %}" class="fort">{{ p.commande.emplacement }} {{ p.commande.numero }}</a>
+                            <div class="discret">{{ p.date|date:"H:i" }} · {{ p.recu_par.username }} · {{ p.get_mode_display }}{% if p.reference %} ({{ p.reference }}){% endif %}</div></td>
+                        <td class="nombre fort positif">{{ p.montant|fcfa }}</td>
+                    </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr><td class="vide">Aucun encaissement ce soir.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<section class="panneau">
+    <div class="panneau-entete"><h2><i class="fas fa-stream"></i>Fil des actions{% if personne %} de {{ personne }}{% endif %}</h2><a href="{% url 'journal' %}?periode=jour{% if personne %}&amp;utilisateur={{ personne|urlencode }}{% endif %}" class="btn btn-petit">Journal complet</a></div>
+    <div class="tableau-conteneur hauteur-limitee">
+        <table class="tableau">
+            <tbody>
+                {% for e in fil %}
+                <tr{% if e.est_sensible %} class="ligne-sensible"{% endif %}>
+                    <td class="discret" style="white-space:nowrap">{{ e.date|date:"H:i:s" }}</td>
+                    <td class="fort">{{ e.nom_utilisateur|default:"Système" }}</td>
+                    <td><span class="badge badge-action-{{ e.action }}{% if e.est_sensible %} badge-rupture{% endif %}">{{ e.get_action_display }}</span></td>
+                    <td><div class="fort">{{ e.objet }}</div><div class="details-journal">{{ e.details|linebreaksbr }}</div></td>
+                    <td class="nombre">{% if e.montant is not None %}{{ e.montant|fcfa }}{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td class="vide">Aucune action ce soir.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>

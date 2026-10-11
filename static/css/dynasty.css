@@ -437,3 +437,22 @@ a.filtre.actif { color: #1a1406; }
 .commande-vide { border-top: 1px solid var(--bordure); }
 .commande-vide p { margin-top: 0; }
 .badge-inactif { background: var(--surface-2); color: var(--texte-2); border: 1px dashed var(--bordure); }
+
+/* ---------- Suivi en direct ---------- */
+.point-direct { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--rouge); margin-right: 6px; vertical-align: middle; animation: clignote 1.6s ease-in-out infinite; }
+@keyframes clignote { 50% { opacity: .25; } }
+.cartes-personnel { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; padding: 16px; }
+.carte-personne { display: grid; gap: 10px; padding: 14px; border-radius: 10px; border: 1px solid var(--bordure); background: var(--fond-2); color: var(--texte); }
+.carte-personne:hover { border-color: var(--or-fonce); color: var(--texte); }
+.carte-personne.active { border-color: rgba(62, 207, 142, .45); }
+.personne-entete { display: flex; align-items: center; gap: 8px; }
+.personne-entete .badge { margin-left: auto; }
+.pastille { width: 10px; height: 10px; border-radius: 50%; background: var(--texte-2); flex-shrink: 0; }
+.pastille.en-ligne { background: var(--vert); box-shadow: 0 0 0 3px rgba(62, 207, 142, .2); }
+.personne-chiffres { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.personne-chiffres div { display: grid; }
+.personne-chiffres .libelle { font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: var(--texte-2); }
+.personne-chiffres strong { font-variant-numeric: tabular-nums; font-size: .9rem; }
+.articles-direct { font-size: .82rem; color: var(--texte); margin-top: 4px; }
+.point-menu { width: 8px; height: 8px; margin: 0 0 0 auto; }
+.aide-soiree { margin: 4px 0 0; font-size: .78rem; }

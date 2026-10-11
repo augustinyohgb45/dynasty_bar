@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -184,9 +185,18 @@ def _jour_demande(request):
 def ventes(request):
     """Bilan d'une soirée : encaissements par mode, ventes par serveur, articles vendus."""
     jour = _jour_demande(request)
-    # Le personnel ne voit que ses propres commandes
-    context = cloture.bilan(jour, serveur=None if request.user.is_superuser else request.user)
+    if request.user.is_superuser:
+        # L'admin voit tout le personnel, ou une seule personne choisie dans la liste
+        serveur = User.objects.filter(pk=_entier(request.GET.get('serveur'), 0)).first()
+    else:
+        # La caisse ne voit que ses propres commandes
+        serveur = request.user
+    context = cloture.bilan(jour, serveur=serveur)
+    debut, fin = context['debut'], context['fin']
     context.update({
+        'serveur_choisi': serveur if request.user.is_superuser else None,
+        'personnel': (User.objects.filter(commandes__date_ouverture__gte=debut, commandes__date_ouverture__lt=fin)
+                      .distinct().order_by('username')) if request.user.is_superuser else [],
         'veille': jour - timedelta(days=1),
         'lendemain': jour + timedelta(days=1),
         'est_soiree_actuelle': jour == cloture.soiree_courante(),

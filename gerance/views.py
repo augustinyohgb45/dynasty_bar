@@ -15,6 +15,7 @@ from comptes.decorators import gerant_requis
 from stock.models import MouvementStock, Produit
 
 from .forms import AchatForm, LignesAchatFormSet
+from .direct import donnees_direct
 from .models import Achat
 from .services import enregistrer_achat
 
@@ -154,3 +155,11 @@ def achat_nouveau(request):
         'prix_achat': {p.pk: p.prix_achat for p in Produit.objects.exclude(prix_achat=None)},
     }
     return render(request, 'gerance/achat_form.html', context)
+
+
+@gerant_requis
+def suivi_direct(request):
+    """Suivi en direct de la caisse ; ?fragment=1 renvoie seulement la zone actualisée."""
+    context = donnees_direct(request.GET.get('personne', '').strip())
+    gabarit = 'gerance/includes/direct_contenu.html' if request.GET.get('fragment') else 'gerance/direct.html'
+    return render(request, gabarit, context)

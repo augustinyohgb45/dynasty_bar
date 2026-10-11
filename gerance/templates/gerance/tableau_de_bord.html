@@ -10,7 +10,8 @@
         <p class="sous-titre">Vue générale du bar depuis le {{ debut|date:"d/m/Y à H:i" }}.</p>
     </div>
     <div class="actions">
-        <a href="{% url 'achat_nouveau' %}" class="btn btn-or"><i class="fas fa-truck-loading"></i> Nouvel achat</a>
+        <a href="{% url 'suivi_direct' %}" class="btn btn-or"><i class="fas fa-satellite-dish"></i> Suivi en direct</a>
+        <a href="{% url 'achat_nouveau' %}" class="btn"><i class="fas fa-truck-loading"></i> Nouvel achat</a>
         {% if cloture_soiree %}
         <a href="{% url 'cloture_detail' cloture_soiree.pk %}" class="btn"><i class="fas fa-lock"></i> Soirée clôturée</a>
         {% else %}

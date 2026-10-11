@@ -33,6 +33,7 @@
             {% if user.is_superuser %}
             <li class="titre">Pilotage</li>
             <li><a href="{% url 'tableau_de_bord' %}" class="{% if page == 'tableau_de_bord' %}actif{% endif %}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{% url 'suivi_direct' %}" class="{% if page == 'suivi_direct' %}actif{% endif %}"><i class="fas fa-satellite-dish"></i> Suivi en direct <span class="point-direct point-menu" aria-hidden="true"></span></a></li>
             <li><a href="{% url 'journal' %}" class="{% if page == 'journal' %}actif{% endif %}"><i class="fas fa-user-secret"></i> Journal d'audit</a></li>
             {% endif %}
 

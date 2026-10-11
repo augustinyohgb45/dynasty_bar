@@ -103,3 +103,51 @@ class TableauDeBordTests(TestCase):
         self.assertRedirects(self.client.get(reverse('accueil')), reverse('tableau_de_bord'))
         self.client.force_login(User.objects.create_user('awa', password='motdepasse-test'))
         self.assertRedirects(self.client.get(reverse('accueil')), reverse('tables'))
+
+
+class SuiviDirectTests(TestCase):
+    """L'admin suit en temps réel ce que fait la caisse."""
+
+    def setUp(self):
+        categorie = Categorie.objects.create(nom='Champagne')
+        self.moet = Produit.objects.create(code='Champ5', nom='Moet', categorie=categorie, prix_vente=50000)
+        MouvementStock.objects.create(produit=self.moet, type=MouvementStock.ENTREE, quantite=10)
+        self.awa = User.objects.create_user('awa', password='motdepasse-test')
+        self.koffi = User.objects.create_user('koffi', password='motdepasse-test')
+        self.gerant = User.objects.create_superuser('gerant', password='motdepasse-test')
+        # Awa : une commande soldée ; Koffi : une commande en cours
+        soldee = services.ouvrir_commande(None, self.awa, 'M. Kouassi', nature=Commande.CLIENT)
+        services.ajouter_produit(soldee, self.moet, 1, self.awa)
+        services.encaisser(soldee, Paiement.ESPECES, 50000, self.awa)
+        self.en_cours = services.ouvrir_commande(None, self.koffi)
+        services.ajouter_produit(self.en_cours, self.moet, 2, self.koffi)
+        self.client.force_login(self.gerant)
+
+    def test_vue_d_ensemble(self):
+        contexte = self.client.get(reverse('suivi_direct')).context
+        self.assertEqual(contexte['encaisse_soiree'], 50000)
+        self.assertEqual(contexte['nb_ouvertes'], 1)
+        fiches = {f['compte'].username: f for f in contexte['personnel']}
+        self.assertEqual((fiches['awa']['encaisse'], fiches['awa']['nb_soldees']), (50000, 1))
+        self.assertEqual((fiches['koffi']['ouvertes'], fiches['koffi']['montant_ouvert']), (1, 100000))
+        self.assertTrue(fiches['koffi']['actif'])
+        self.assertContains(self.client.get(reverse('suivi_direct')), '2 × Moet')
+
+    def test_actualisation_et_filtre_par_personne(self):
+        fragment = self.client.get(reverse('suivi_direct'), {'fragment': 1, 'personne': 'awa'})
+        self.assertNotContains(fragment, '<html')
+        self.assertTrue(all(e.nom_utilisateur == 'awa' for e in fragment.context['fil']))
+        self.assertContains(fragment, 'Encaissement')
+
+    def test_reserve_a_l_admin(self):
+        self.client.force_login(self.awa)
+        self.assertEqual(self.client.get(reverse('suivi_direct')).status_code, 403)
+
+    def test_ventes_de_la_soiree_par_caissiere(self):
+        tout = self.client.get(reverse('ventes')).context
+        self.assertEqual(tout['chiffre_affaires'], 50000)
+        self.assertEqual(len(tout['ouvertes']), 1)
+        awa = self.client.get(reverse('ventes'), {'serveur': self.awa.pk}).context
+        self.assertEqual((awa['chiffre_affaires'], len(awa['ouvertes']), awa['serveur_choisi']), (50000, 0, self.awa))
+        koffi = self.client.get(reverse('ventes'), {'serveur': self.koffi.pk}).context
+        self.assertEqual((koffi['chiffre_affaires'], len(koffi['ouvertes'])), (0, 1))

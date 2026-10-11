@@ -7,9 +7,20 @@
 <div class="entete-page">
     <div>
         <h1>Soirée du {{ jour|date:"l j F Y" }}</h1>
-        <p class="sous-titre">{% if cloture %}<span class="badge badge-ok">Clôturée</span> {% endif %}Du {{ debut|date:"d/m H:i" }} au {{ fin|date:"d/m H:i" }}{% if not user.is_superuser %} · vos commandes uniquement{% endif %}.</p>
+        <p class="sous-titre">{% if cloture %}<span class="badge badge-ok">Clôturée</span> {% endif %}Du {{ debut|date:"d/m H:i" }} au {{ fin|date:"d/m H:i" }}{% if not user.is_superuser %} · vos commandes uniquement{% elif serveur_choisi %} · commandes de <strong>{{ serveur_choisi.get_full_name|default:serveur_choisi.username }}</strong>{% else %} · tout le personnel{% endif %}.</p>
+        <p class="texte-discret aide-soiree">Une soirée va de {{ debut|date:"H\hi" }} à {{ fin|date:"H\hi" }} le lendemain : les ventes du matin comptent dans la soirée de la veille.</p>
     </div>
     <div class="actions">
+        {% if user.is_superuser %}
+        <form method="get" class="recherche">
+            <input type="hidden" name="jour" value="{{ jour|date:'Y-m-d' }}">
+            <select name="serveur" aria-label="Membre du personnel" onchange="this.form.submit()">
+                <option value="">Tout le personnel</option>
+                {% for p in personnel %}<option value="{{ p.pk }}"{% if serveur_choisi.pk == p.pk %} selected{% endif %}>{{ p.get_full_name|default:p.username }}</option>{% endfor %}
+            </select>
+        </form>
+        <a href="{% url 'suivi_direct' %}" class="btn"><i class="fas fa-satellite-dish"></i> Suivi en direct</a>
+        {% endif %}
         <a href="?jour={{ veille|date:'Y-m-d' }}" class="btn"><i class="fas fa-chevron-left"></i> Veille</a>
         {% if not est_soiree_actuelle %}
         <a href="?jour={{ lendemain|date:'Y-m-d' }}" class="btn">Lendemain <i class="fas fa-chevron-right"></i></a>

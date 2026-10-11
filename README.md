@@ -24,11 +24,13 @@ venv\Scripts\python.exe manage.py createsuperuser   # compte du gérant
 
 | Rôle | Peut faire |
 |---|---|
-| Personnel | Ouvrir des tables, prendre les commandes, encaisser, imprimer les tickets, voir ses propres ventes de la soirée ; consulter le stock et saisir les réceptions |
-| Gérant (administrateur) | Tout, plus : tableau de bord, achats, journal d'audit, retirer un article d'une commande, annuler une commande non encaissée, voir le bilan de tout le personnel ; casses, offerts, ajustements d'inventaire (motif obligatoire), catalogue, import Excel, tables et comptes |
+| Caisse | Ouvrir des tables, prendre les commandes, encaisser, imprimer les tickets, voir ses propres ventes de la soirée (aucun accès au stock ni à la gestion) |
+| Admin | Tout, plus : stock, réceptions, tableau de bord, achats, journal d'audit, retirer un article d'une commande, annuler une commande non encaissée, voir le bilan de tout le personnel ; casses, offerts, ajustements d'inventaire (motif obligatoire), catalogue, import Excel, tables et comptes |
 
-Les comptes du personnel se créent dans « Comptes et réglages » (administration Django).
-Après connexion, le gérant arrive sur le tableau de bord et le personnel sur la caisse.
+Chaque rôle a sa propre vue : l'« Espace caisse » ne montre que les tables, les commandes et ses
+ventes ; l'« Espace admin » donne accès à tout. Après connexion, l'admin arrive sur le tableau de bord
+et la caisse sur le plan des tables. Les comptes se créent dans Administration > « Comptes du personnel »
+(rôle Caisse ou Admin, activation, nouveau mot de passe).
 
 ## Espace gérance
 

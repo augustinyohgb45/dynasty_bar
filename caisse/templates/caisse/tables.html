@@ -15,7 +15,7 @@
 {% if cloture %}
 <div class="messages"><div class="message attention"><i class="fas fa-lock"></i>
     <span>La soirée est clôturée depuis {{ cloture.date|date:"H:i" }} (par {{ cloture.par.username }}) : aucune nouvelle commande n'est possible.
-    {% if user.is_superuser %}<a href="{% url 'cloture_detail' cloture.pk %}">Voir le rapport ou rouvrir la soirée</a>{% else %}Adressez-vous au gérant.{% endif %}</span>
+    {% if user.is_superuser %}<a href="{% url 'cloture_detail' cloture.pk %}">Voir le rapport ou rouvrir la soirée</a>{% else %}Adressez-vous à l'admin.{% endif %}</span>
 </div></div>
 {% endif %}
 
@@ -44,7 +44,7 @@
     </div>
 </section>
 {% empty %}
-<p class="texte-discret">Aucune table configurée. Le gérant peut en ajouter dans « Comptes et réglages ».</p>
+<p class="texte-discret">Aucune table configurée. L'admin peut en ajouter dans « Réglages avancés » > Tables.</p>
 {% endfor %}
 
 <section class="panneau">

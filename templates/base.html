@@ -17,40 +17,49 @@
 
 <div class="layout">
     <nav class="barre-laterale">
-        <a class="marque" href="{% url 'tables' %}">
+        <a class="marque" href="{% url 'accueil' %}">
             <span class="logo">D</span>
             <span>
                 <span class="nom">DYNASTY</span><br>
                 <span class="sous-nom">Night Club</span>
             </span>
         </a>
+        <div class="espace {% if user.is_superuser %}espace-admin{% else %}espace-caisse{% endif %}">
+            <i class="fas {% if user.is_superuser %}fa-user-shield{% else %}fa-cash-register{% endif %}"></i>
+            {% if user.is_superuser %}Espace admin{% else %}Espace caisse{% endif %}
+        </div>
 
         <ul class="menu">
+            {% if user.is_superuser %}
+            <li class="titre">Pilotage</li>
+            <li><a href="{% url 'tableau_de_bord' %}" class="{% if page == 'tableau_de_bord' %}actif{% endif %}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{% url 'journal' %}" class="{% if page == 'journal' %}actif{% endif %}"><i class="fas fa-user-secret"></i> Journal d'audit</a></li>
+            {% endif %}
+
             <li class="titre">Caisse</li>
             <li><a href="{% url 'tables' %}" class="{% if page == 'tables' or page == 'commande' %}actif{% endif %}"><i class="fas fa-cash-register"></i> Tables et commandes</a></li>
-            <li><a href="{% url 'ventes' %}" class="{% if page == 'ventes' %}actif{% endif %}"><i class="fas fa-chart-line"></i> Ventes de la soirée</a></li>
+            <li><a href="{% url 'ventes' %}" class="{% if page == 'ventes' %}actif{% endif %}"><i class="fas fa-chart-line"></i> {% if user.is_superuser %}Ventes de la soirée{% else %}Mes ventes de la soirée{% endif %}</a></li>
             {% if user.is_superuser %}
             <li><a href="{% url 'cloturer' %}" class="{% if page == 'cloturer' or page == 'clotures' or page == 'cloture_detail' %}actif{% endif %}"><i class="fas fa-lock"></i> Clôture de soirée</a></li>
-            {% endif %}
-            <li class="titre">Stock</li>
-            <li><a href="{% url 'stock' %}" class="{% if page == 'stock' or page == 'produit_nouveau' or page == 'produit_modifier' %}actif{% endif %}"><i class="fas fa-wine-bottle"></i> État du stock</a></li>
-            <li><a href="{% url 'mouvements' %}" class="{% if page == 'mouvements' %}actif{% endif %}"><i class="fas fa-exchange-alt"></i> Mouvements</a></li>
-            {% if user.is_superuser %}
-            <li class="titre">Gérance</li>
-            <li><a href="{% url 'tableau_de_bord' %}" class="{% if page == 'tableau_de_bord' %}actif{% endif %}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+
+            <li class="titre">Stock et achats</li>
+            <li><a href="{% url 'stock' %}" class="{% if page == 'stock' or page == 'produit_modifier' %}actif{% endif %}"><i class="fas fa-wine-bottle"></i> État du stock</a></li>
             <li><a href="{% url 'achat_nouveau' %}" class="{% if page == 'achat_nouveau' %}actif{% endif %}"><i class="fas fa-truck-loading"></i> Nouvel achat</a></li>
             <li><a href="{% url 'achats' %}" class="{% if page == 'achats' or page == 'achat_detail' %}actif{% endif %}"><i class="fas fa-truck"></i> Achats</a></li>
-            <li><a href="{% url 'journal' %}" class="{% if page == 'journal' %}actif{% endif %}"><i class="fas fa-user-secret"></i> Journal d'audit</a></li>
-            <li><a href="{% url 'produit_nouveau' %}" class="{% if page == 'produit_nouveau' %}actif{% endif %}"><i class="fas fa-plus"></i> Nouveau produit</a></li>
+            <li><a href="{% url 'mouvements' %}" class="{% if page == 'mouvements' %}actif{% endif %}"><i class="fas fa-exchange-alt"></i> Mouvements</a></li>
+            <li><a href="{% url 'produit_nouveau' %}" class="{% if page == 'produit_nouveau' %}actif{% endif %}"><i class="fas fa-plus"></i> Nouvelle boisson</a></li>
             <li><a href="{% url 'importer' %}" class="{% if page == 'importer' %}actif{% endif %}"><i class="fas fa-file-import"></i> Importer le catalogue</a></li>
-            <li><a href="{% url 'admin:index' %}"><i class="fas fa-users-cog"></i> Comptes et réglages</a></li>
+
+            <li class="titre">Administration</li>
+            <li><a href="{% url 'personnel' %}" class="{% if page == 'personnel' or page == 'compte_nouveau' or page == 'compte_modifier' %}actif{% endif %}"><i class="fas fa-users"></i> Comptes du personnel</a></li>
+            <li><a href="{% url 'admin:index' %}"><i class="fas fa-cogs"></i> Réglages avancés</a></li>
             {% endif %}
         </ul>
 
         <div class="utilisateur">
             <div>
                 <div class="fort">{{ user.get_full_name|default:user.username }}</div>
-                <div class="role">{% if user.is_superuser %}Gérant{% else %}Personnel{% endif %}</div>
+                <div class="role">{% if user.is_superuser %}Administrateur{% else %}Caisse{% endif %}</div>
             </div>
             <form method="post" action="{% url 'deconnexion' %}">
                 {% csrf_token %}

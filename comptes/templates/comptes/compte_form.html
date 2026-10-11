@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if creation %}Nouveau compte{% else %}Compte {{ compte.username }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>{% if creation %}Nouveau compte{% else %}{{ compte.get_full_name|default:compte.username }}{% endif %}</h1>
+        <p class="sous-titre">{% if creation %}Créez le compte d'une caissière, d'un caissier ou d'un autre admin.{% else %}Identifiant : {{ compte.username }} · dernière connexion : {{ compte.last_login|date:"d/m/Y H:i"|default:"jamais" }}{% endif %}</p>
+    </div>
+    <a href="{% url 'personnel' %}" class="btn"><i class="fas fa-arrow-left"></i> Retour aux comptes</a>
+</div>
+
+<div class="grille-2 grille-compte">
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-id-card"></i>{% if creation %}Identité et rôle{% else %}Informations et rôle{% endif %}</h2></div>
+        <div class="panneau-corps">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="enregistrer" value="1">
+                {% for erreur in form.non_field_errors %}<div class="erreur-champ">{{ erreur }}</div>{% endfor %}
+                {% if creation %}{% include 'includes/champ.html' with champ=form.username %}{% endif %}
+                <div class="grille-form">
+                    {% include 'includes/champ.html' with champ=form.first_name %}
+                    {% include 'includes/champ.html' with champ=form.last_name %}
+                </div>
+                <fieldset class="choix-role">
+                    <legend>Rôle</legend>
+                    {% for choix in form.role %}
+                    <label class="carte-role">
+                        {{ choix.tag }}
+                        <span>{{ choix.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                    {% for erreur in form.role.errors %}<div class="erreur-champ">{{ erreur }}</div>{% endfor %}
+                </fieldset>
+                {% if creation %}
+                <div class="grille-form">
+                    {% include 'includes/champ.html' with champ=form.password1 %}
+                    {% include 'includes/champ.html' with champ=form.password2 %}
+                </div>
+                {% else %}
+                {% include 'includes/interrupteur.html' with champ=form.is_active %}
+                {% endif %}
+                <div class="pied-formulaire">
+                    <a href="{% url 'personnel' %}" class="btn">Annuler</a>
+                    <button type="submit" class="btn btn-or"><i class="fas fa-save"></i> {% if creation %}Créer le compte{% else %}Enregistrer{% endif %}</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    {% if not creation %}
+    <section class="panneau">
+        <div class="panneau-entete"><h2><i class="fas fa-key"></i>Nouveau mot de passe</h2></div>
+        <div class="panneau-corps">
+            <p class="texte-discret">En cas d'oubli : définissez un nouveau mot de passe et communiquez-le discrètement.</p>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="mot_de_passe" value="1">
+                {% include 'includes/champ.html' with champ=form_mdp.new_password1 %}
+                {% include 'includes/champ.html' with champ=form_mdp.new_password2 %}
+                <button type="submit" class="btn btn-bloc"><i class="fas fa-key"></i> Changer le mot de passe</button>
+            </form>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

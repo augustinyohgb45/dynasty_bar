@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Accès réservé{% endblock %}
+
+{% block content %}
+<section class="panneau etroit page-refus">
+    <div class="panneau-corps">
+        <div class="icone icone-orange"><i class="fas fa-user-shield fa-lg"></i></div>
+        <h1>Accès réservé à l'admin</h1>
+        <p class="sous-titre">Cette page fait partie de l'espace admin. Votre compte donne accès à la caisse.</p>
+        <a href="{% url 'accueil' %}" class="btn btn-or"><i class="fas fa-cash-register"></i> Retour à la caisse</a>
+    </div>
+</section>
+{% endblock %}

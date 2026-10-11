@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Comptes du personnel{% endblock %}
+
+{% block content %}
+<div class="entete-page">
+    <div>
+        <h1>Comptes du personnel</h1>
+        <p class="sous-titre">Les comptes « Caisse » ne voient que la caisse et leurs propres ventes ; les comptes « Admin » ont accès à tout.</p>
+    </div>
+    <a href="{% url 'compte_nouveau' %}" class="btn btn-or"><i class="fas fa-user-plus"></i> Nouveau compte</a>
+</div>
+
+<section class="panneau">
+    <div class="tableau-conteneur">
+        <table class="tableau">
+            <thead><tr><th>Nom</th><th>Identifiant</th><th>Rôle</th><th>État</th><th>Dernière connexion</th><th></th></tr></thead>
+            <tbody>
+                {% for compte in comptes %}
+                <tr>
+                    <td class="fort">{{ compte.get_full_name|default:"—" }}</td>
+                    <td>{{ compte.username }}{% if compte == user %} <span class="discret">(vous)</span>{% endif %}</td>
+                    <td>{% if compte.is_superuser %}<span class="badge badge-role-admin"><i class="fas fa-user-shield"></i> Admin</span>{% else %}<span class="badge badge-role-caisse"><i class="fas fa-cash-register"></i> Caisse</span>{% endif %}</td>
+                    <td>{% if compte.is_active %}<span class="badge badge-ok">Actif</span>{% else %}<span class="badge badge-rupture">Désactivé</span>{% endif %}</td>
+                    <td class="discret">{{ compte.last_login|date:"d/m/Y H:i"|default:"jamais" }}</td>
+                    <td class="nombre"><a href="{% url 'compte_modifier' compte.pk %}" class="btn btn-petit"><i class="fas fa-pen"></i> Modifier</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -78,6 +78,9 @@
             </table>
         </div>
 
+        {% if not user.is_superuser and commande.est_ouverte and lignes %}
+        <div class="panneau-corps texte-discret note-caisse"><i class="fas fa-info-circle"></i> Article en trop ? Seul l'admin peut le retirer.</div>
+        {% endif %}
         <div class="totaux">
             <div class="ligne-total grand"><span>Total</span><span>{{ total|fcfa }}</span></div>
             {% for paiement in paiements %}

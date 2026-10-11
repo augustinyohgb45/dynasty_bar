@@ -92,7 +92,7 @@
                 <label for="note">Remarques (facultatif)</label>
                 <input type="text" name="note" id="note" maxlength="500" value="{{ saisie.note|default:'' }}" placeholder="Ex. : billet de 10 000 suspect, bouteille cassée en réserve…">
             </div>
-            <p class="texte-discret">Après validation, la caisse n'accepte plus de commande pour cette soirée (le gérant peut la rouvrir). Le bilan et les écarts sont enregistrés et inscrits au journal d'audit.</p>
+            <p class="texte-discret">Après validation, la caisse n'accepte plus de commande pour cette soirée (l'admin peut la rouvrir). Le bilan et les écarts sont enregistrés et inscrits au journal d'audit.</p>
             <div class="pied-formulaire">
                 <a href="{% url 'ventes' %}" class="btn">Annuler</a>
                 <button type="submit" class="btn btn-or"{% if problemes %} disabled{% endif %}><i class="fas fa-lock"></i> Clôturer la soirée</button>

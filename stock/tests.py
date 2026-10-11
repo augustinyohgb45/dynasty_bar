@@ -86,7 +86,7 @@ class MouvementsTests(TestCase):
         return self.client.post(reverse('mouvements'), dict({'produit': self.produit.pk}, **donnees))
 
     def test_reception_au_prix_saisi(self):
-        self.client.force_login(self.serveur)
+        self.client.force_login(self.admin)
         self.poster(type='entree', quantite=5, prix_achat=28000)
         entree = MouvementStock.objects.get(type='entree')
         self.assertEqual((entree.quantite, entree.prix_unitaire, entree.montant), (5, 28000, 140000))
@@ -105,11 +105,11 @@ class MouvementsTests(TestCase):
         self.assertContains(reponse, 'Stock insuffisant')
         self.assertFalse(MouvementStock.objects.exists())
 
-    def test_casse_reservee_aux_administrateurs(self):
+    def test_mouvements_reserves_a_l_admin(self):
         self.client.force_login(self.serveur)
-        self.poster(type='entree', quantite=5)
-        self.poster(type='casse', quantite=1, motif='tombée')
-        self.assertEqual(self.produit.stock_actuel, 5)
+        self.assertEqual(self.poster(type='entree', quantite=5).status_code, 403)
+        self.assertEqual(self.client.get(reverse('mouvements')).status_code, 403)
+        self.assertEqual(self.produit.stock_actuel, 0)
 
     def test_casse_exige_un_motif(self):
         self.client.force_login(self.admin)
@@ -131,9 +131,11 @@ class PagesTests(TestCase):
         self.serveur = User.objects.create_user('serveur', password='motdepasse-test')
         self.admin = User.objects.create_superuser('admin', password='motdepasse-test')
 
-    def test_stock_accessible_aux_utilisateurs_connectes(self):
+    def test_stock_reserve_a_l_admin(self):
         self.assertEqual(self.client.get(reverse('stock')).status_code, 302)
         self.client.force_login(self.serveur)
+        self.assertEqual(self.client.get(reverse('stock')).status_code, 403)
+        self.client.force_login(self.admin)
         self.assertEqual(self.client.get(reverse('stock')).status_code, 200)
 
     def test_catalogue_et_import_reserves_aux_administrateurs(self):

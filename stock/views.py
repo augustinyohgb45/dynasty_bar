@@ -2,7 +2,6 @@ import os
 import tempfile
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -17,7 +16,7 @@ from .models import Categorie, MouvementStock, Produit
 LIBELLES_ETAT = {'ok': "OK", 'alerte': "Alerte", 'rupture': "Rupture"}
 
 
-@login_required
+@gerant_requis
 def stock(request):
     produits = list(Produit.objects.filter(actif=True).avec_stock().select_related('categorie'))
     categorie_choisie = request.GET.get('categorie', '')
@@ -49,7 +48,7 @@ def stock(request):
     return render(request, 'stock/stock.html', context)
 
 
-@login_required
+@gerant_requis
 def mouvements(request):
     if request.method == 'POST':
         form = MouvementForm(request.POST, utilisateur=request.user)

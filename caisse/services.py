@@ -32,7 +32,7 @@ def ouvrir_commande(table, utilisateur, client=''):
     jour = timezone.localtime(debut_soiree()).date()
     if Cloture.objects.filter(soiree=jour, statut=Cloture.VALIDEE).exists():
         raise ErreurCaisse(f"La soirée du {jour:%d/%m/%Y} est clôturée : aucune nouvelle commande n'est possible. "
-                           "Le gérant peut la rouvrir si nécessaire.")
+                           "L'admin peut la rouvrir si nécessaire.")
     if table is not None:
         existante = Commande.objects.filter(table=table, statut=Commande.OUVERTE).first()
         if existante is not None:

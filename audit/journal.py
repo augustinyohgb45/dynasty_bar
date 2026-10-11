@@ -30,7 +30,7 @@ LIBELLES = {
     'prix_vente': "Prix de vente", 'seuil_alerte': "Seuil d'alerte", 'actif': "En vente",
     'ordre': "Ordre", 'zone': "Zone", 'active': "Active",
     'username': "Nom d'utilisateur", 'first_name': "Prénom", 'last_name': "Nom", 'email': "E-mail",
-    'is_active': "Compte actif", 'is_superuser': "Gérant", 'is_staff': "Accès à l'administration",
+    'is_active': "Compte actif", 'is_superuser': "Administrateur", 'is_staff': "Accès à l'administration",
 }
 
 

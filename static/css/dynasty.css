@@ -1,5 +1,6 @@
 /* Dynasty Night Club — thème sombre et doré */
 :root {
+    color-scheme: dark;
     --fond: #0f0f14;
     --fond-2: #17171f;
     --surface: #1d1d27;
@@ -203,7 +204,7 @@ table.tableau { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .champ label { display: block; font-size: .8rem; font-weight: 600; color: var(--texte-2); margin-bottom: 6px; }
 .champ .requis { color: var(--or); }
 
-input[type=text], input[type=number], input[type=password], input[type=search], input[type=date], select {
+input[type=text], input[type=number], input[type=password], input[type=search], input[type=date], select, textarea {
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
@@ -400,3 +401,20 @@ a.filtre.actif { color: #1a1406; }
     .hauteur-limitee { max-height: none; overflow: visible; }
     .icone { display: none !important; }
 }
+
+/* ---------- Rôles : espace caisse / espace admin ---------- */
+.espace { margin: 12px 14px 0; padding: 8px 12px; border-radius: 8px; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.espace-admin { background: rgba(212, 175, 55, .14); color: var(--or); }
+.espace-caisse { background: rgba(62, 207, 142, .12); color: var(--vert); }
+.badge-role-admin { background: rgba(212, 175, 55, .14); color: var(--or); }
+.badge-role-caisse { background: rgba(62, 207, 142, .12); color: var(--vert); }
+.note-caisse { border-top: 1px solid var(--bordure); padding-top: 12px; padding-bottom: 12px; font-size: .8rem; }
+.choix-role { border: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
+.choix-role legend { font-size: .8rem; font-weight: 600; color: var(--texte-2); margin-bottom: 6px; }
+.carte-role { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--bordure); border-radius: 8px; cursor: pointer; font-size: .88rem; }
+.carte-role:has(input:checked) { border-color: var(--or); background: rgba(212, 175, 55, .08); }
+.carte-role input { margin-top: 3px; accent-color: var(--or); }
+.grille-compte { grid-template-columns: minmax(300px, 1.3fr) minmax(260px, 1fr); }
+.page-refus { margin: 40px auto; text-align: center; }
+.page-refus .icone { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin: 8px auto 16px; }
+.page-refus .btn { margin-top: 20px; }

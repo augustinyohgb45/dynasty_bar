@@ -17,3 +17,6 @@ staticfiles/
 
 # Réglages locaux de Claude Code
 .claude/
+
+# Sauvegardes de la base
+sauvegardes/

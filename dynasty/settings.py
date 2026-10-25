@@ -12,7 +12,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Secrets et réglages propres à chaque poste dans le fichier .env (voir .env.example)
 load_dotenv(BASE_DIR / '.env')
 
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("La variable SECRET_KEY n'est pas définie (fichier .env, ou variables "
+                               "d'environnement du projet sur Vercel).")
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = [h for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h]
 

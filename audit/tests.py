@@ -80,3 +80,22 @@ class PageJournalTests(TestCase):
         self.client.force_login(self.gerant)
         entree = JournalAudit.objects.first()
         self.assertEqual(self.client.get(reverse('admin:audit_journalaudit_delete', args=[entree.pk])).status_code, 403)
+
+
+class ChargementDeDonneesTests(TestCase):
+    def test_loaddata_n_ecrit_rien_au_journal(self):
+        """La copie des données vers la base en ligne ne doit pas créer de fausses actions."""
+        import json
+        import os
+        import tempfile
+
+        from django.core.management import call_command
+
+        donnees = [{'model': 'stock.categorie', 'pk': 50, 'fields': {'nom': 'Soft', 'ordre': 13}}]
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
+            json.dump(donnees, f)
+        try:
+            call_command('loaddata', f.name, verbosity=0)
+        finally:
+            os.unlink(f.name)
+        self.assertFalse(JournalAudit.objects.exists())

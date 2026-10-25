@@ -20,3 +20,4 @@ staticfiles/
 
 # Sauvegardes de la base
 sauvegardes/
+.env.vercel

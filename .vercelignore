@@ -1,0 +1,9 @@
+venv/
+.venv/
+__pycache__/
+db.sqlite3
+sauvegardes/
+staticfiles/
+.env
+.env.vercel
+.claude/

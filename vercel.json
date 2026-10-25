@@ -1,0 +1,8 @@
+{
+  "builds": [
+    { "src": "dynasty/wsgi.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "dynasty/wsgi.py" }
+  ]
+}

@@ -104,6 +104,28 @@ venv\Scripts\python.exe manage.py importer_catalogue "chemin\gestion_Stock Dynas
 L'import harmonise les catégories, répartit les alcools forts (Whisky, Cognac, Gin…),
 écarte les prix d'achat incohérents et ne reprend le stock initial qu'une seule fois.
 
+## Déploiement en ligne (Vercel + Neon)
+
+L'application tourne aussi sur Vercel, avec une base PostgreSQL Neon (le fichier SQLite ne peut pas
+être utilisé en ligne : il serait effacé). En local, sans variable DATABASE_URL, rien ne change.
+
+1. Sur vercel.com : « Add New… > Project », importer le dépôt GitHub dynasty_bar
+   (Framework Preset : Other), coller dans « Environment Variables » le contenu du fichier local
+   `.env.vercel` (SECRET_KEY, DEBUG=False…), puis « Deploy ».
+2. Onglet « Storage » du projet : « Create Database » > Neon, le relier au projet ; Vercel ajoute
+   DATABASE_URL. Relancer ensuite un déploiement (« Redeploy »).
+3. Créer les tables et copier les données de ce PC vers Neon. Ajouter dans le fichier `.env` local
+   la ligne `NEON_DATABASE_URL=postgresql://…` (adresse fournie par Neon), puis :
+
+```bash
+venv\Scripts\python.exe manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.permission -e sessions -e admin.logentry -o sauvegardes\donnees.json
+venv\Scripts\python.exe manage.py migrate --database neon
+venv\Scripts\python.exe manage.py loaddata --database neon sauvegardes\donnees.json
+```
+
+En ligne, la caisse dépend de la connexion Internet du club ; `lancer_reseau.py` reste la solution
+sans Internet (mais les deux bases sont alors séparées).
+
 ## Tests
 
 ```bash

@@ -7,7 +7,7 @@ from django.db import migrations, models
 def marquer_commandes_a_table(apps, schema_editor):
     # Les commandes déjà passées à une table prennent le type « Table » (les autres restent « Comptoir »)
     Commande = apps.get_model('caisse', 'Commande')
-    Commande.objects.filter(table__isnull=False).update(nature='table')
+    Commande.objects.using(schema_editor.connection.alias).filter(table__isnull=False).update(nature='table')
 
 
 class Migration(migrations.Migration):

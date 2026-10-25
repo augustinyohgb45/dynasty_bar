@@ -7,7 +7,7 @@ TABLES = [(f"Table {i}", 'salle', i) for i in range(1, 9)] + [(f"VIP {i}", 'vip'
 def creer_tables(apps, schema_editor):
     Table = apps.get_model('caisse', 'Table')
     for nom, zone, ordre in TABLES:
-        Table.objects.get_or_create(nom=nom, defaults={'zone': zone, 'ordre': ordre})
+        Table.objects.using(schema_editor.connection.alias).get_or_create(nom=nom, defaults={'zone': zone, 'ordre': ordre})
 
 
 class Migration(migrations.Migration):

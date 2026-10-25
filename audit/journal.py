@@ -138,7 +138,8 @@ def _modeles_suivis():
 
 
 def _avant_enregistrement(sender, instance, **kwargs):
-    if not _suivi_actif(sender) or not instance.pk:
+    # raw : chargement de données (loaddata), pas une action du personnel
+    if not _suivi_actif(sender) or not instance.pk or kwargs.get('raw'):
         return
     ancien = sender.objects.filter(pk=instance.pk).first()
     if ancien is not None:
@@ -146,8 +147,8 @@ def _avant_enregistrement(sender, instance, **kwargs):
         instance._audit_mot_de_passe = getattr(ancien, 'password', None)
 
 
-def _apres_enregistrement(sender, instance, created, **kwargs):
-    if not _suivi_actif(sender):
+def _apres_enregistrement(sender, instance, created, raw=False, **kwargs):
+    if not _suivi_actif(sender) or raw:
         return
     if created:
         details = "\n".join(f"{LIBELLES.get(k, k)} : {v}" for k, v in _instantane(instance).items() if v != "—")

@@ -118,9 +118,9 @@ L'application tourne aussi sur Vercel, avec une base PostgreSQL Neon (le fichier
    la ligne `NEON_DATABASE_URL=postgresql://…` (adresse fournie par Neon), puis :
 
 ```bash
-venv\Scripts\python.exe manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.permission -e sessions -e admin.logentry -o sauvegardes\donnees.json
+venv\Scripts\python.exe -X utf8 manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.permission -e sessions -e admin.logentry -o sauvegardes\donnees.json
 venv\Scripts\python.exe manage.py migrate --database neon
-venv\Scripts\python.exe manage.py loaddata --database neon sauvegardes\donnees.json
+venv\Scripts\python.exe -X utf8 manage.py loaddata --database neon sauvegardes\donnees.json
 ```
 
 En ligne, la caisse dépend de la connexion Internet du club ; `lancer_reseau.py` reste la solution

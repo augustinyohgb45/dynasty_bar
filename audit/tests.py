@@ -99,3 +99,16 @@ class ChargementDeDonneesTests(TestCase):
         finally:
             os.unlink(f.name)
         self.assertFalse(JournalAudit.objects.exists())
+
+
+
+class JournalMultiBaseTests(TestCase):
+    def test_le_journal_va_dans_la_base_modifiee(self):
+        """Un compte créé dans une autre base (ex. : --database neon) est journalisé dans cette base."""
+        from unittest import mock
+        bases = []
+        vrai_using = JournalAudit.objects.using
+        with mock.patch.object(JournalAudit.objects, 'using', side_effect=lambda b: bases.append(b) or vrai_using('default')):
+            User.objects.db_manager('default').create_user('superadmin', password='Mot-de-passe-solide-2026')
+        self.assertEqual(bases, ['default'])
+        self.assertTrue(JournalAudit.objects.filter(action='creation', objet='superadmin').exists())

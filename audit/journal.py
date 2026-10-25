@@ -66,7 +66,7 @@ def _requete():
     return getattr(_contexte, 'request', None)
 
 
-def journaliser(action, objet='', type_objet='', details='', montant=None, utilisateur=None, request=None):
+def journaliser(action, objet='', type_objet='', details='', montant=None, utilisateur=None, request=None, base=None):
     """Ajoute une entrée au journal. Sans utilisateur connu, l'action est attribuée au « Système »."""
     request = request or _requete()
     if utilisateur is None and request is not None:
@@ -74,7 +74,7 @@ def journaliser(action, objet='', type_objet='', details='', montant=None, utili
         if compte is not None and compte.is_authenticated:
             utilisateur = compte
     try:
-        JournalAudit.objects.create(
+        JournalAudit.objects.using(base or 'default').create(
             utilisateur=utilisateur if utilisateur is not None and utilisateur.pk else None,
             nom_utilisateur=utilisateur.get_username() if utilisateur is not None else '',
             action=action,
@@ -141,7 +141,7 @@ def _avant_enregistrement(sender, instance, **kwargs):
     # raw : chargement de données (loaddata), pas une action du personnel
     if not _suivi_actif(sender) or not instance.pk or kwargs.get('raw'):
         return
-    ancien = sender.objects.filter(pk=instance.pk).first()
+    ancien = sender.objects.using(kwargs.get('using') or 'default').filter(pk=instance.pk).first()
     if ancien is not None:
         instance._audit_avant = _instantane(ancien)
         instance._audit_mot_de_passe = getattr(ancien, 'password', None)
@@ -152,7 +152,8 @@ def _apres_enregistrement(sender, instance, created, raw=False, **kwargs):
         return
     if created:
         details = "\n".join(f"{LIBELLES.get(k, k)} : {v}" for k, v in _instantane(instance).items() if v != "—")
-        journaliser(JournalAudit.CREATION, objet=instance, type_objet=MODELES[sender], details=details)
+        journaliser(JournalAudit.CREATION, objet=instance, type_objet=MODELES[sender], details=details,
+                    base=kwargs.get('using'))
         return
     avant = getattr(instance, '_audit_avant', None)
     if avant is None:
@@ -163,12 +164,13 @@ def _apres_enregistrement(sender, instance, created, raw=False, **kwargs):
         changements.append("Mot de passe modifié")
     del instance._audit_avant
     if changements:
-        journaliser(JournalAudit.MODIFICATION, objet=instance, type_objet=MODELES[sender], details="\n".join(changements))
+        journaliser(JournalAudit.MODIFICATION, objet=instance, type_objet=MODELES[sender], details="\n".join(changements),
+                    base=kwargs.get('using'))
 
 
 def _apres_suppression(sender, instance, **kwargs):
     if _suivi_actif(sender):
-        journaliser(JournalAudit.SUPPRESSION, objet=instance, type_objet=MODELES[sender])
+        journaliser(JournalAudit.SUPPRESSION, objet=instance, type_objet=MODELES[sender], base=kwargs.get('using'))
 
 
 MODELES = {}

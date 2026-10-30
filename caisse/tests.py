@@ -388,3 +388,15 @@ class VenteParLotTests(BaseCaisse):
         from . import cloture
         self.assertNotIn(self.lot, LigneAchatForm().fields['produit'].queryset)
         self.assertNotIn(self.lot, cloture.produits_a_inventorier(cloture.soiree_courante()))
+
+
+class LogoDuClubTests(BaseCaisse):
+    def test_logo_sur_le_recu_le_menu_et_la_connexion(self):
+        commande = self.ouvrir()
+        recu = self.client.get(reverse('ticket', args=[commande.pk])).content.decode()
+        self.assertIn('img/logo-dynasty-noir.png', recu)  # version noire pour l'impression
+        page = self.client.get(reverse('tables')).content.decode()
+        self.assertIn('img/logo-dynasty.png', page)
+        self.assertIn('img/favicon.ico', page)
+        self.client.logout()
+        self.assertContains(self.client.get(reverse('connexion')), 'img/logo-dynasty.png')

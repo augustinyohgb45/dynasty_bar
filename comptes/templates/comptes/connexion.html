@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Connexion · Dynasty Night Club</title>
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
+    <link rel="icon" type="image/png" href="{% static 'img/favicon-64.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+    <meta name="theme-color" content="#0f0f14">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/dynasty.css' %}" rel="stylesheet">
 </head>
@@ -11,9 +15,7 @@
 <div class="page-connexion">
     <div class="carte-connexion">
         <div class="marque">
-            <span class="logo">D</span>
-            <span class="nom">DYNASTY</span>
-            <span class="sous-nom">Night Club</span>
+            <img class="logo-connexion" src="{% static 'img/logo-dynasty.png' %}" alt="Dynasty Night Club" width="399" height="445">
         </div>
 
         <form method="post" novalidate>

@@ -461,3 +461,11 @@ a.filtre.actif { color: #1a1406; }
 .bloc-lot { border: 1px dashed var(--bordure); border-radius: 10px; padding: 12px 14px 0; margin: 0 0 16px; }
 .bloc-lot legend { font-size: .8rem; font-weight: 600; color: var(--or); padding: 0 6px; }
 .bloc-lot .aide { margin: 0 0 10px; }
+
+/* ---------- Logo du club ---------- */
+.marque { justify-content: center; padding: 18px 20px 14px; }
+.logo-marque { width: 96px; height: auto; display: block; }
+.carte-connexion .marque { padding: 0 0 28px; }
+.logo-connexion { width: 150px; height: auto; display: block; margin: 0 auto; }
+.marque-mobile { display: flex; align-items: center; gap: 8px; color: inherit; }
+.marque-mobile img { height: 26px; width: auto; }

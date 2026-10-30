@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Accueil{% endblock %} · Dynasty Night Club</title>
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
+    <link rel="icon" type="image/png" href="{% static 'img/favicon-64.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+    <meta name="theme-color" content="#0f0f14">
     <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'css/dynasty.css' %}" rel="stylesheet">
 </head>
@@ -11,18 +15,14 @@
 {% with page=request.resolver_match.url_name %}
 <header class="barre-mobile">
     <button type="button" class="btn-lien" id="ouvrir-menu" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></button>
-    <span class="nom">DYNASTY</span>
+    <a href="{% url 'accueil' %}" class="marque-mobile"><img src="{% static 'img/logo-symbole.png' %}" alt="" width="18" height="34"><span class="nom">DYNASTY</span></a>
     <span></span>
 </header>
 
 <div class="layout">
     <nav class="barre-laterale">
         <a class="marque" href="{% url 'accueil' %}">
-            <span class="logo">D</span>
-            <span>
-                <span class="nom">DYNASTY</span><br>
-                <span class="sous-nom">Night Club</span>
-            </span>
+            <img class="logo-marque" src="{% static 'img/logo-dynasty.png' %}" alt="Dynasty Night Club" width="399" height="445">
         </a>
         <div class="espace {% if user.is_superuser %}espace-admin{% else %}espace-caisse{% endif %}">
             <i class="fas {% if user.is_superuser %}fa-user-shield{% else %}fa-cash-register{% endif %}"></i>

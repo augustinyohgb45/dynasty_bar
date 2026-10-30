@@ -1,4 +1,4 @@
-{% load stock_extras %}<!DOCTYPE html>
+{% load static stock_extras %}<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="utf-8">
@@ -9,7 +9,7 @@
         body { margin: 0; background: #e9e9ee; font: 13px/1.4 "Courier New", monospace; color: #000; }
         .ticket { width: 72mm; margin: 16px auto; padding: 4mm; background: #fff; }
         .centre { text-align: center; }
-        .nom { font-size: 18px; font-weight: bold; letter-spacing: 3px; }
+        .logo-recu { width: 34mm; height: auto; display: block; margin: 0 auto 2mm; }
         hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
         table { width: 100%; border-collapse: collapse; }
         td { vertical-align: top; padding: 1px 0; }
@@ -28,8 +28,7 @@
 <body>
 <div class="ticket">
     <div class="centre">
-        <div class="nom">DYNASTY</div>
-        <div>NIGHT CLUB</div>
+        <img class="logo-recu" src="{% static 'img/logo-dynasty-noir.png' %}" alt="Dynasty Night Club">
     </div>
     <hr>
     <div>{% if commande.statut == 'payee' %}Reçu{% else %}Addition{% endif %} {{ commande.numero }} · {{ commande.emplacement }}</div>

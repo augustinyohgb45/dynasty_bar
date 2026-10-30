@@ -77,7 +77,7 @@ def tableau_de_bord(request):
             jour += timedelta(days=1)
 
     # Stock restant
-    produits = list(Produit.objects.filter(actif=True).avec_stock().select_related('categorie'))
+    produits = list(Produit.objects.unitaires().filter(actif=True).avec_stock().select_related('categorie'))
     restants_categorie = defaultdict(lambda: {'quantite': 0, 'valeur': 0})
     for p in produits:
         p.etat_stock = p.etat(p.stock)

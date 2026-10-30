@@ -10,8 +10,11 @@ class ProduitForm(forms.ModelForm):
 
     class Meta:
         model = Produit
-        fields = ['code', 'nom', 'categorie', 'prix_achat', 'prix_vente', 'seuil_alerte', 'actif']
+        fields = ['code', 'nom', 'categorie', 'prix_achat', 'prix_vente', 'seuil_alerte', 'actif',
+                  'lot_de', 'nb_bouteilles']
         widgets = {
+            'lot_de': forms.Select(attrs={'class': 'custom-select'}),
+            'nb_bouteilles': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Ex. : Soft01"}),
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'categorie': forms.Select(attrs={'class': 'custom-select'}),
@@ -24,9 +27,26 @@ class ProduitForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['categorie'].required = False
+        lots = Produit.objects.unitaires().select_related('categorie')
+        if self.instance.pk:
+            lots = lots.exclude(pk=self.instance.pk)
+        self.fields['lot_de'].queryset = lots
+        self.fields['lot_de'].empty_label = "— Vendue à l'unité —"
+        self.fields['lot_de'].label_from_instance = lambda p: f"{p.nom} — {p.categorie}"
+        self.fields['nb_bouteilles'].required = False
 
     def clean(self):
         donnees = super().clean()
+        base, nb = donnees.get('lot_de'), donnees.get('nb_bouteilles') or 1
+        if base is not None:
+            if self.instance.pk and self.instance.lots.exists():
+                self.add_error('lot_de', "Cette boisson sert déjà de base à un lot : elle ne peut pas devenir un lot.")
+            if nb < 2:
+                self.add_error('nb_bouteilles', "Un lot contient au moins 2 bouteilles.")
+            if self.instance.pk and self.instance.mouvements.exists():
+                self.add_error('lot_de', "Cette boisson a déjà du stock ou des mouvements : créez plutôt un nouveau lot.")
+        else:
+            donnees['nb_bouteilles'] = 1
         nouvelle = (donnees.get('nouvelle_categorie') or '').strip()
         if nouvelle:
             categorie = Categorie.objects.filter(nom__iexact=nouvelle).first()
@@ -39,7 +59,7 @@ class ProduitForm(forms.ModelForm):
 
 class MouvementForm(forms.Form):
     produit = forms.ModelChoiceField(
-        queryset=Produit.objects.filter(actif=True).select_related('categorie'),
+        queryset=Produit.objects.unitaires().filter(actif=True).select_related('categorie'),
         widget=forms.Select(attrs={'class': 'custom-select'}))
     type = forms.ChoiceField(choices=MouvementStock.TYPES, widget=forms.Select(attrs={'class': 'custom-select'}))
     quantite = forms.IntegerField(

@@ -18,13 +18,17 @@ LIBELLES_ETAT = {'ok': "OK", 'alerte': "Alerte", 'rupture': "Rupture"}
 
 @gerant_requis
 def stock(request):
-    produits = list(Produit.objects.filter(actif=True).avec_stock().select_related('categorie'))
+    produits = list(Produit.objects.filter(actif=True).avec_stock().select_related('categorie', 'lot_de'))
     categorie_choisie = request.GET.get('categorie', '')
 
     valeur_vente = valeur_achat = nb_alertes = nb_ruptures = nb_sans_prix_achat = 0
     for produit in produits:
         produit.etat_stock = produit.etat(produit.stock)
         produit.libelle_etat = LIBELLES_ETAT[produit.etat_stock]
+        if produit.est_lot:
+            # Un lot puise dans le stock de sa boisson de base : il n'entre pas dans les totaux
+            produit.valeur = None
+            continue
         produit.valeur = max(produit.stock, 0) * produit.prix_vente
         valeur_vente += produit.valeur
         if produit.prix_achat is None:
@@ -38,7 +42,7 @@ def stock(request):
         'produits': [p for p in produits if not categorie_choisie or str(p.categorie_id) == categorie_choisie],
         'categories': Categorie.objects.filter(produits__actif=True).distinct(),
         'categorie_choisie': categorie_choisie,
-        'nb_produits': len(produits),
+        'nb_produits': sum(1 for p in produits if not p.est_lot),
         'valeur_vente': valeur_vente,
         'valeur_achat': valeur_achat,
         'nb_sans_prix_achat': nb_sans_prix_achat,

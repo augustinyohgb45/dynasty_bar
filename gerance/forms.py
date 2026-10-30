@@ -21,7 +21,7 @@ class AchatForm(forms.Form):
 
 class LigneAchatForm(forms.Form):
     """Une boisson achetée : existante, ou nouvelle (nom, catégorie et prix de vente à renseigner)."""
-    produit = forms.ModelChoiceField(queryset=Produit.objects.select_related('categorie'), required=False,
+    produit = forms.ModelChoiceField(queryset=Produit.objects.unitaires().select_related('categorie'), required=False,
                                      empty_label="— Nouvelle boisson —")
     nouveau_nom = forms.CharField(label="Nom de la nouvelle boisson", max_length=120, required=False)
     nouvelle_categorie = forms.ModelChoiceField(label="Catégorie", queryset=Categorie.objects.all(), required=False)

@@ -85,7 +85,7 @@
             <tbody>
                 {% for produit in produits %}
                 <tr data-etat="{{ produit.etat_stock }}">
-                    <td><div class="fort">{{ produit.nom }}</div><div class="discret">{{ produit.code }}</div></td>
+                    <td><div class="fort">{{ produit.nom }}</div><div class="discret">{{ produit.code }}{% if produit.est_lot %} · lot de {{ produit.nb_bouteilles }} × {{ produit.lot_de }}{% endif %}</div></td>
                     <td>{{ produit.categorie }}</td>
                     <td class="nombre">{{ produit.prix_vente|fcfa }}</td>
                     <td class="nombre">{{ produit.prix_achat|fcfa }}</td>

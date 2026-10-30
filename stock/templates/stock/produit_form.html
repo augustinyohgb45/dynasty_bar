@@ -28,6 +28,14 @@
                 {% include 'includes/champ.html' with champ=form.prix_vente %}
                 {% include 'includes/champ.html' with champ=form.seuil_alerte %}
             </div>
+            <fieldset class="bloc-lot">
+                <legend>Offre par lot (facultatif)</legend>
+                <p class="aide">Ex. : « 3 Portes de Bordeaux » à 75 000 F. Chaque lot vendu fait sortir les bouteilles de la boisson de base ; un lot n'a pas de stock propre et ne s'achète pas.</p>
+                <div class="grille-form">
+                    {% include 'includes/champ.html' with champ=form.lot_de %}
+                    {% include 'includes/champ.html' with champ=form.nb_bouteilles %}
+                </div>
+            </fieldset>
             {% include 'includes/interrupteur.html' with champ=form.actif %}
             <div class="pied-formulaire">
                 <a href="{% url 'stock' %}" class="btn">Annuler</a>

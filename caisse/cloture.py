@@ -74,7 +74,7 @@ def produits_a_inventorier(jour):
     debut, fin = bornes_soiree(jour)
     vendus = set(LigneCommande.objects.filter(commande__date_ouverture__gte=debut, commande__date_ouverture__lt=fin)
                  .values_list('produit_id', flat=True))
-    produits = Produit.objects.avec_stock().select_related('categorie')
+    produits = Produit.objects.unitaires().avec_stock().select_related('categorie')
     return [p for p in produits if p.stock != 0 or p.pk in vendus]
 
 

@@ -86,17 +86,27 @@ def ajouter_produit(commande, produit, quantite, utilisateur):
     # Même produit au même prix : on regroupe sur une seule ligne
     ligne = commande.lignes.filter(produit=produit, prix_unitaire=produit.prix_vente).select_related('mouvement').first()
     if ligne is None:
+        # Un lot fait sortir ses bouteilles de la boisson de base
+        stocke, par_unite = (produit.lot_de, produit.nb_bouteilles) if produit.est_lot else (produit, 1)
+        motif = f"Commande {commande.numero} · {commande.emplacement}"
+        if produit.est_lot:
+            motif += f" · {produit}"
         mouvement = MouvementStock.objects.create(
-            produit=produit, type=MouvementStock.VENTE, quantite=-quantite, prix_unitaire=produit.prix_vente,
-            motif=f"Commande {commande.numero} · {commande.emplacement}", utilisateur=utilisateur)
+            produit=stocke, type=MouvementStock.VENTE, quantite=-quantite * par_unite,
+            prix_unitaire=produit.prix_vente // par_unite, motif=motif, utilisateur=utilisateur)
         return LigneCommande.objects.create(commande=commande, produit=produit, quantite=quantite,
                                             prix_unitaire=produit.prix_vente, mouvement=mouvement)
     ligne.quantite += quantite
     ligne.save(update_fields=['quantite'])
-    if ligne.mouvement is not None:
-        ligne.mouvement.quantite = -ligne.quantite
-        ligne.mouvement.save(update_fields=['quantite'])
+    _ajuster_sortie(ligne)
     return ligne
+
+
+def _ajuster_sortie(ligne):
+    """Met la sortie de stock d'une ligne en accord avec sa quantité (× bouteilles pour un lot)."""
+    if ligne.mouvement is not None:
+        ligne.mouvement.quantite = -ligne.quantite * ligne.produit.nb_bouteilles
+        ligne.mouvement.save(update_fields=['quantite'])
 
 
 @transaction.atomic
@@ -118,9 +128,7 @@ def retirer_produit(ligne, utilisateur, quantite=1):
         ligne.delete()
         return None
     ligne.save(update_fields=['quantite'])
-    if ligne.mouvement is not None:
-        ligne.mouvement.quantite = -ligne.quantite
-        ligne.mouvement.save(update_fields=['quantite'])
+    _ajuster_sortie(ligne)
     return ligne
 
 

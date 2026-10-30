@@ -160,3 +160,33 @@ class PagesTests(TestCase):
         reponse = self.client.post(reverse('importer'), {'fichier': envoi})
         self.assertContains(reponse, 'Rapport d')
         self.assertTrue(Produit.objects.filter(code='P001').exists())
+
+
+class FormulaireLotTests(TestCase):
+    def setUp(self):
+        self.categorie = Categorie.objects.create(nom='Champagne')
+        self.base = Produit.objects.create(code='Champ1', nom='Les portes de bordeaux', categorie=self.categorie,
+                                           prix_vente=30000)
+        self.client.force_login(User.objects.create_superuser('admin', password='motdepasse-test'))
+
+    def donnees(self, **autres):
+        d = {'code': 'LOT01', 'nom': '3 Portes de Bordeaux', 'categorie': self.categorie.pk, 'prix_vente': 75000,
+             'seuil_alerte': 0, 'actif': 'on', 'lot_de': self.base.pk, 'nb_bouteilles': 3}
+        d.update(autres)
+        return d
+
+    def test_creation_d_un_lot(self):
+        self.client.post(reverse('produit_nouveau'), self.donnees())
+        lot = Produit.objects.get(code='LOT01')
+        self.assertEqual((lot.lot_de, lot.nb_bouteilles, lot.est_lot), (self.base, 3, True))
+
+    def test_un_lot_contient_au_moins_deux_bouteilles(self):
+        reponse = self.client.post(reverse('produit_nouveau'), self.donnees(nb_bouteilles=1))
+        self.assertContains(reponse, 'au moins 2 bouteilles')
+
+    def test_lot_absent_de_la_valeur_du_stock(self):
+        MouvementStock.objects.create(produit=self.base, type=MouvementStock.ENTREE, quantite=6)
+        self.client.post(reverse('produit_nouveau'), self.donnees())
+        contexte = self.client.get(reverse('stock')).context
+        self.assertEqual(contexte['valeur_vente'], 6 * 30000)
+        self.assertEqual(contexte['nb_produits'], 1)

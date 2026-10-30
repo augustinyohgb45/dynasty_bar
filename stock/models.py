@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from django.db.models import Sum, Value
+from django.db.models import Case, F, IntegerField, OuterRef, Subquery, Sum, Value, When
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -17,10 +17,25 @@ class Categorie(models.Model):
         return self.nom
 
 
+def _somme_mouvements(reference):
+    return Subquery(MouvementStock.objects.filter(produit=reference).order_by().values('produit')
+                    .annotate(s=Sum('quantite')).values('s'), output_field=IntegerField())
+
+
 class ProduitQuerySet(models.QuerySet):
     def avec_stock(self):
-        """Ajoute le stock actuel (somme des mouvements) à chaque produit."""
-        return self.annotate(stock=Coalesce(Sum('mouvements__quantite'), Value(0)))
+        """
+        Ajoute le stock actuel (somme des mouvements) à chaque produit. Pour un lot, c'est le
+        nombre de lots complets possibles avec le stock de la boisson de base.
+        """
+        propre = Coalesce(_somme_mouvements(OuterRef('pk')), Value(0))
+        de_la_base = Coalesce(_somme_mouvements(OuterRef('lot_de')), Value(0)) / F('nb_bouteilles')
+        return self.annotate(stock=Case(When(lot_de__isnull=True, then=propre), default=de_la_base,
+                                        output_field=IntegerField()))
+
+    def unitaires(self):
+        """Boissons stockées à l'unité (hors lots) : achats, mouvements, inventaires, valeur du stock."""
+        return self.filter(lot_de__isnull=True)
 
 
 class Produit(models.Model):
@@ -33,6 +48,13 @@ class Produit(models.Model):
         "seuil d'alerte", default=0,
         help_text="Alerte quand le stock descend à ce niveau. 0 = pas d'alerte (seule la rupture est signalée).")
     actif = models.BooleanField("en vente", default=True)
+    # Offre par lot (ex. : 3 Portes de Bordeaux pour 75 000 F) : pas de stock propre, chaque lot
+    # vendu sort nb_bouteilles bouteilles de la boisson de base.
+    lot_de = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True, related_name='lots',
+                               verbose_name="lot de", limit_choices_to={'lot_de__isnull': True},
+                               help_text="Laisser vide pour une boisson vendue à l'unité.")
+    nb_bouteilles = models.PositiveSmallIntegerField(
+        "bouteilles par lot", default=1, help_text="Nombre de bouteilles de la boisson de base dans un lot.")
     date_creation = models.DateTimeField(auto_now_add=True)
 
     objects = ProduitQuerySet.as_manager()
@@ -44,11 +66,15 @@ class Produit(models.Model):
         return self.nom
 
     @property
+    def est_lot(self):
+        return self.lot_de_id is not None
+
+    @property
     def stock_actuel(self):
         """Stock calculé (utilise l'annotation de avec_stock() si elle est présente)."""
         if hasattr(self, 'stock'):
             return self.stock
-        return self.mouvements.aggregate(total=Sum('quantite'))['total'] or 0
+        return Produit.objects.avec_stock().get(pk=self.pk).stock
 
     def etat(self, stock=None):
         stock = self.stock_actuel if stock is None else stock

@@ -93,6 +93,14 @@ rouge et filtrables. Le journal s'exporte pour Excel et ne peut être ni modifi�
 - **Soirée** : de 12 h à 12 h le lendemain (réglable avec `HEURE_DEBUT_SOIREE` dans `.env`), pour que
   les ventes d'après minuit comptent dans la bonne soirée.
 
+## Offres par lot
+
+Une boisson peut être vendue par lot (ex. : « 3 Portes de Bordeaux » à 75 000 F, « 2 Chenet Ice » à
+25 000 F) : dans « Nouvelle boisson » ou « Modifier », choisir la boisson de base dans « Lot de » et le
+nombre de bouteilles. Un lot n'a pas de stock propre : son stock est le nombre de lots complets
+possibles, et chaque lot vendu fait sortir les bouteilles de la boisson de base. Les lots ne
+s'achètent pas, ne s'inventorient pas et ne comptent pas dans la valeur du stock.
+
 ## Import du catalogue Excel
 
 Depuis la page « Importer le catalogue », ou en ligne de commande :

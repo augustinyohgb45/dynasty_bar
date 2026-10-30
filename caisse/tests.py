@@ -342,3 +342,49 @@ class CommandeVideTests(BaseCaisse):
         self.client.post(reverse('cloturer'), {'fond_de_caisse': 0})
         self.assertTrue(Cloture.objects.exists())
         self.assertFalse(Commande.objects.filter(statut=Commande.OUVERTE).exists())
+
+
+class VenteParLotTests(BaseCaisse):
+    """Un lot (ex. : 3 Portes de Bordeaux pour 75 000 F) fait sortir ses bouteilles de la boisson de base."""
+
+    def setUp(self):
+        super().setUp()
+        self.lot = Produit.objects.create(code='LOT01', nom='3 Moet', categorie=self.moet.categorie,
+                                          prix_vente=130000, lot_de=self.moet, nb_bouteilles=3)
+
+    def test_stock_du_lot_calcule_depuis_la_base(self):
+        self.assertEqual(self.lot.stock_actuel, 1)  # 5 bouteilles → 1 lot complet
+        self.assertEqual(self.moet.stock_actuel, 5)
+
+    def test_vente_d_un_lot(self):
+        commande = self.ouvrir()
+        self.ajouter(commande, self.lot)
+        self.assertEqual(commande.total, 130000)
+        self.assertEqual(self.moet.stock_actuel, 2)
+        vente = MouvementStock.objects.get(type=MouvementStock.VENTE)
+        self.assertEqual((vente.produit, vente.quantite), (self.moet, -3))
+        self.payer(commande, Paiement.ESPECES, 130000)
+        commande.refresh_from_db()
+        self.assertEqual(commande.statut, Commande.PAYEE)
+
+    def test_lot_refuse_si_bouteilles_insuffisantes(self):
+        commande = self.ouvrir()
+        self.ajouter(commande, self.lot, 2)  # 6 bouteilles demandées, 5 en stock
+        self.assertEqual(commande.total, 0)
+        self.assertEqual(self.moet.stock_actuel, 5)
+
+    def test_retrait_d_un_lot_remet_les_bouteilles(self):
+        MouvementStock.objects.create(produit=self.moet, type=MouvementStock.ENTREE, quantite=4)
+        commande = self.ouvrir()
+        self.ajouter(commande, self.lot, 2)
+        self.assertEqual(self.moet.stock_actuel, 3)
+        self.client.force_login(self.gerant)
+        self.client.post(reverse('retirer', args=[commande.lignes.get().pk]))
+        self.assertEqual(self.moet.stock_actuel, 6)
+        self.assertEqual(MouvementStock.objects.get(type=MouvementStock.VENTE).quantite, -3)
+
+    def test_un_lot_ne_s_achete_pas_et_n_est_pas_inventorie(self):
+        from gerance.forms import LigneAchatForm
+        from . import cloture
+        self.assertNotIn(self.lot, LigneAchatForm().fields['produit'].queryset)
+        self.assertNotIn(self.lot, cloture.produits_a_inventorier(cloture.soiree_courante()))

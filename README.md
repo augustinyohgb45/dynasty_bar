@@ -109,7 +109,7 @@ Depuis la page « Importer le catalogue », ou en ligne de commande :
 venv\Scripts\python.exe manage.py importer_catalogue "chemin\gestion_Stock Dynasty.xlsm" --simulation
 ```
 
-L'import harmonise les catégories, répartit les alcools forts (Whisky, Cognac, Gin…),
+L'import harmonise les catégories (les alcools forts restent dans « Liqueur », comme sur la carte),
 écarte les prix d'achat incohérents et ne reprend le stock initial qu'une seule fois.
 
 ## Déploiement en ligne (Vercel + Neon)

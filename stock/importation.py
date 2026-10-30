@@ -16,24 +16,12 @@ from audit.journal import sans_suivi_automatique
 
 from .models import Categorie, MouvementStock, Produit
 
-# Ordre d'affichage des catégories (les autres viennent ensuite)
-ORDRE_CATEGORIES = [
-    "Champagne", "Vin mousseux", "Vin", "Whisky", "Cognac", "Vodka", "Tequila", "Gin", "Rhum",
-    "Liqueur", "Apéritif", "Bière", "Soft", "Eau",
-]
+# Ordre d'affichage des catégories, comme sur la carte du club (les autres viennent ensuite).
+# Les alcools forts restent tous dans « Liqueur », comme sur la carte.
+ORDRE_CATEGORIES = {"Champagne": 1, "Liqueur": 2, "Vin": 3, "Vin mousseux": 4, "Bière": 12, "Soft": 13, "Eau": 14}
 
 # Orthographes de l'Excel ramenées à une seule catégorie
 SYNONYMES_CATEGORIES = {"bières": "Bière", "biere": "Bière", "bieres": "Bière"}
-
-# La catégorie « Liqueur » de l'Excel regroupe tous les alcools forts : on les répartit d'après le nom
-TYPES_ALCOOLS_FORTS = [
-    ("hennessy", "Cognac"),
-    ("johnnie", "Whisky"), ("jack daniel", "Whisky"), ("chivas", "Whisky"),
-    ("ballantines", "Whisky"), ("ballantine", "Whisky"), ("jb", "Whisky"),
-    ("gordon", "Gin"), ("belvedere", "Vodka"), ("saint james", "Rhum"),
-    ("don julio", "Tequila"), ("casamigos", "Tequila"), ("azul", "Tequila"),
-    ("baileys", "Liqueur"), ("jägermeister", "Liqueur"), ("martini", "Apéritif"),
-]
 
 # En dessous de 10 % du prix de vente, le prix d'achat est considéré comme une erreur de saisie
 RATIO_PRIX_ACHAT_MINIMUM = 0.10
@@ -72,20 +60,15 @@ def _entier(valeur):
         return None
 
 
-def normaliser_categorie(categorie, nom):
+def normaliser_categorie(categorie):
     categorie = nettoyer_texte(categorie)
     categorie = SYNONYMES_CATEGORIES.get(categorie.lower(), categorie)
-    if categorie.lower() == "liqueur":
-        nom_minuscule = nom.lower()
-        for mot, type_alcool in TYPES_ALCOOLS_FORTS:
-            if re.search(rf"\b{re.escape(mot)}\b", nom_minuscule):
-                return type_alcool
     return categorie[:1].upper() + categorie[1:] if categorie else "Autre"
 
 
 def _obtenir_categorie(nom, cache):
     if nom not in cache:
-        ordre = ORDRE_CATEGORIES.index(nom) + 1 if nom in ORDRE_CATEGORIES else 100
+        ordre = ORDRE_CATEGORIES.get(nom, 100)
         cache[nom], _ = Categorie.objects.get_or_create(nom=nom, defaults={'ordre': ordre})
     return cache[nom]
 
@@ -161,7 +144,7 @@ def importer_catalogue(fichier, utilisateur=None, simulation=False):
                 prix_achat = None
             seuil = _entier(valeurs['Stock_Alerte']) or 0
 
-            categorie = _obtenir_categorie(normaliser_categorie(valeurs['Categorie'], nom), categories)
+            categorie = _obtenir_categorie(normaliser_categorie(valeurs['Categorie']), categories)
             produit, cree = Produit.objects.update_or_create(code=code, defaults={
                 'nom': nom, 'categorie': categorie, 'prix_achat': prix_achat,
                 'prix_vente': prix_vente, 'seuil_alerte': seuil,

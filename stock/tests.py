@@ -49,7 +49,7 @@ class ImportCatalogueTests(TestCase):
         self.assertEqual(Produit.objects.get(code='Champ1').nom, 'Les portes de bordeaux')
         # « Bières » et « Bière » ne forment plus qu'une catégorie
         self.assertEqual(Produit.objects.get(code='P001').categorie, Produit.objects.get(code='Bier01').categorie)
-        self.assertEqual(Produit.objects.get(code='Liq19').categorie.nom, 'Cognac')
+        self.assertEqual(Produit.objects.get(code='Liq19').categorie.nom, 'Liqueur')
 
     def test_prix_achat_incoherent_ecarte(self):
         rapport = importer_catalogue(self.chemin)
@@ -68,10 +68,10 @@ class ImportCatalogueTests(TestCase):
         self.assertEqual(rapport.nb_produits, 4)
         self.assertFalse(Produit.objects.exists())
 
-    def test_repartition_des_alcools_forts(self):
-        self.assertEqual(normaliser_categorie('Liqueur', "Gordon's Pink (Rose)"), 'Gin')
-        self.assertEqual(normaliser_categorie('Liqueur', 'JB'), 'Whisky')
-        self.assertEqual(normaliser_categorie('Liqueur', 'Baileys'), 'Liqueur')
+    def test_alcools_forts_restent_dans_liqueur(self):
+        # Comme sur la carte du club : tous les alcools forts sont dans « Liqueur »
+        self.assertEqual(normaliser_categorie('Liqueur'), 'Liqueur')
+        self.assertEqual(normaliser_categorie('bières'), 'Bière')
 
 
 class MouvementsTests(TestCase):
